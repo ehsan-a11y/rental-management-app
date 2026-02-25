@@ -553,6 +553,24 @@ function Dashboard({buildings, flats, partitions, residents, rentPayments, expen
   const unpC  = monPay.filter(p=>p.paymentStatus==="UNPAID").length;
   const [payFilter, setPayFilter] = useState(null);
 
+  // Resident search state (inline in hero)
+  const [srchQuery, setSrchQuery] = useState("");
+  const [srchOpen,  setSrchOpen]  = useState(false);
+  const [srchSel,   setSrchSel]   = useState(null);
+  const srchMatches = srchQuery.trim().length === 0 ? [] : residents.filter(r =>
+    r.fullName.toLowerCase().includes(srchQuery.toLowerCase()) || r.phone.includes(srchQuery)
+  );
+  const srchInfo = r => {
+    const part=partitions.find(x=>x.id===r.partitionId), fl=flats.find(x=>x.id===part?.flatId), bld=buildings.find(x=>x.id===fl?.buildingId);
+    return {part,fl,bld};
+  };
+  const srchDur = moveIn => {
+    let months=(new Date().getFullYear()-new Date(moveIn).getFullYear())*12+(new Date().getMonth()-new Date(moveIn).getMonth());
+    const y=Math.floor(months/12); months%=12;
+    return [y>0?`${y}y`:"",months>0?`${months}mo`:""].filter(Boolean).join(" ")||"< 1 month";
+  };
+  const srchBal = r => rentPayments.filter(p=>p.residentId===r.id).reduce((s,p)=>s+Math.max(p.totalRent-p.paidAmount,0),0);
+
   const chartData = useMemo(()=>{
     const arr=[];
     for(let i=2;i>=0;i--){
@@ -583,7 +601,7 @@ function Dashboard({buildings, flats, partitions, residents, rentPayments, expen
             <h1 className="text-white text-3xl font-extrabold mt-1">Property Dashboard</h1>
             <p className="text-indigo-200 text-sm mt-1">{buildings.length} buildings · {flats.length} flats · {partitions.length} rooms</p>
           </div>
-          <div className="flex gap-3 flex-wrap">
+          <div className="flex gap-3 flex-wrap items-center">
             {[
               {label:"Collection Rate", val:`${colRate}%`,  color:colRate>=80?"#10b981":colRate>=50?"#f59e0b":"#f87171"},
               {label:"Occupancy",       val:`${occRate}%`,  color:occRate>=80?"#10b981":"#f59e0b"},
@@ -594,9 +612,91 @@ function Dashboard({buildings, flats, partitions, residents, rentPayments, expen
                 <p className="text-indigo-200 text-xs mt-0.5">{b.label}</p>
               </div>
             ))}
+            {/* Inline resident search */}
+            <div className="relative">
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-white/50 text-sm">🔍</span>
+                <input
+                  className="rounded-2xl px-4 py-3 pl-9 pr-8 text-sm text-white placeholder-white/50 border outline-none focus:ring-2 focus:ring-white/30 w-52"
+                  style={{background:"rgba(255,255,255,0.1)",borderColor:"rgba(255,255,255,0.1)"}}
+                  placeholder="Search resident…"
+                  value={srchQuery}
+                  onChange={e=>{setSrchQuery(e.target.value);setSrchSel(null);setSrchOpen(true);}}
+                  onFocus={()=>setSrchOpen(true)}
+                />
+                {srchQuery && (
+                  <button onClick={()=>{setSrchQuery("");setSrchSel(null);setSrchOpen(false);}}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-white/50 hover:text-white text-xs">✕</button>
+                )}
+              </div>
+              {srchOpen && srchMatches.length > 0 && (
+                <div className="absolute z-30 mt-1 right-0 w-72 bg-white border border-gray-200 rounded-xl shadow-2xl overflow-hidden">
+                  {srchMatches.slice(0,6).map(r=>{
+                    const {part,fl,bld}=srchInfo(r);
+                    return (
+                      <button key={r.id} onClick={()=>{setSrchSel(r);setSrchQuery(r.fullName);setSrchOpen(false);}}
+                        className="w-full text-left px-4 py-3 hover:bg-indigo-50 transition-colors border-b border-gray-50 last:border-0 flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0"
+                          style={{background:"linear-gradient(135deg,#6366f1,#a855f7)"}}>{r.fullName.charAt(0)}</div>
+                        <div className="min-w-0">
+                          <p className="font-semibold text-gray-800 text-sm truncate">{r.fullName}</p>
+                          <p className="text-xs text-gray-400 truncate">{bld?.name} › {fl?.flatNumber} › {part?.partitionName}</p>
+                        </div>
+                        <Badge v={r.status}/>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+              {srchOpen && srchQuery.trim().length > 0 && srchMatches.length === 0 && (
+                <div className="absolute z-30 mt-1 right-0 w-64 bg-white border border-gray-200 rounded-xl shadow-xl px-4 py-3 text-sm text-gray-400">No residents found</div>
+              )}
+            </div>
           </div>
         </div>
       </div>
+
+      {/* Resident detail card (appears below hero when selected) */}
+      {srchSel && (()=>{
+        const {part,fl,bld}=srchInfo(srchSel);
+        const bal=srchBal(srchSel);
+        return (
+          <div className="rounded-2xl border border-indigo-100 overflow-hidden shadow-sm">
+            <div className="flex items-center gap-3 px-5 py-4 bg-indigo-600">
+              <div className="w-11 h-11 rounded-full flex items-center justify-center text-indigo-600 font-extrabold text-lg bg-white flex-shrink-0">{srchSel.fullName.charAt(0)}</div>
+              <div className="flex-1 min-w-0">
+                <p className="text-white font-extrabold text-lg leading-tight truncate">{srchSel.fullName}</p>
+                <p className="text-indigo-200 text-xs">{srchSel.phone}{srchSel.email?` · ${srchSel.email}`:""}</p>
+              </div>
+              <Badge v={srchSel.status}/>
+              <button onClick={()=>{setSrchSel(null);setSrchQuery("");}} className="text-white/60 hover:text-white ml-2">✕</button>
+            </div>
+            <div className="bg-white px-5 py-4 space-y-3">
+              <div className="flex items-center gap-2 text-sm flex-wrap">
+                <span className="flex items-center gap-1 bg-indigo-50 rounded-lg px-3 py-1.5 border border-indigo-100 font-medium text-indigo-700">🏙️ {bld?.name}</span>
+                <span className="text-gray-300">›</span>
+                <span className="flex items-center gap-1 bg-blue-50 rounded-lg px-3 py-1.5 border border-blue-100 font-medium text-blue-700">🏢 Flat {fl?.flatNumber}</span>
+                <span className="text-gray-300">›</span>
+                <span className="flex items-center gap-1 bg-violet-50 rounded-lg px-3 py-1.5 border border-violet-100 font-medium text-violet-700">🚪 {part?.partitionName}</span>
+              </div>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                {[
+                  {label:"Monthly Rent",    val:`AED ${fmtN(srchSel.monthlyRent)}`, color:"text-indigo-600"},
+                  {label:"Stay Duration",   val:srchDur(srchSel.moveInDate),        color:"text-blue-600",   sub:`since ${srchSel.moveInDate}`},
+                  {label:"Pending Balance", val:`AED ${fmtN(bal)}`,                 color:bal>0?"text-red-500":"text-emerald-500", sub:bal>0?"outstanding":"all clear"},
+                  {label:"Room Size",       val:part?.partitionSize||"—",           color:"text-gray-700",   sub:"sq ft"},
+                ].map(c=>(
+                  <div key={c.label} className="bg-gray-50 rounded-xl p-3 border border-gray-100 text-center">
+                    <p className="text-xs text-gray-400 mb-1">{c.label}</p>
+                    <p className={`text-lg font-extrabold ${c.color}`}>{c.val}</p>
+                    {c.sub && <p className="text-xs text-gray-400">{c.sub}</p>}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* KPI row 1 */}
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
@@ -825,8 +925,6 @@ function Dashboard({buildings, flats, partitions, residents, rentPayments, expen
         }
       </div>
 
-      {/* Resident Lookup */}
-      <ResidentSearch residents={residents} partitions={partitions} flats={flats} buildings={buildings} rentPayments={rentPayments}/>
     </div>
   );
 }
