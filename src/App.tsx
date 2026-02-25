@@ -593,8 +593,8 @@ function Dashboard({buildings, flats, partitions, residents, rentPayments, expen
   return (
     <div className="space-y-6">
       {/* Hero */}
-      <div className="rounded-3xl p-6 relative overflow-hidden shadow-xl" style={{background:"linear-gradient(135deg,#1e1b4b,#312e81,#4f46e5)"}}>
-        <div className="absolute -top-12 -right-12 w-48 h-48 rounded-full opacity-10" style={{background:"radial-gradient(circle,#a5b4fc,transparent)"}}/>
+      <div className="rounded-3xl p-6 relative shadow-xl" style={{background:"linear-gradient(135deg,#1e1b4b,#312e81,#4f46e5)"}}>
+        <div className="absolute -top-12 -right-12 w-48 h-48 rounded-full opacity-10 pointer-events-none" style={{background:"radial-gradient(circle,#a5b4fc,transparent)"}}/>
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 relative">
           <div>
             <p className="text-indigo-300 text-sm">{today}</p>
@@ -630,7 +630,7 @@ function Dashboard({buildings, flats, partitions, residents, rentPayments, expen
                 )}
               </div>
               {srchOpen && srchMatches.length > 0 && (
-                <div className="absolute z-30 mt-1 right-0 w-72 bg-white border border-gray-200 rounded-xl shadow-2xl overflow-hidden">
+                <div className="absolute z-50 mt-1 right-0 w-72 bg-white border border-gray-200 rounded-xl shadow-2xl overflow-hidden">
                   {srchMatches.slice(0,6).map(r=>{
                     const {part,fl,bld}=srchInfo(r);
                     return (
@@ -649,7 +649,7 @@ function Dashboard({buildings, flats, partitions, residents, rentPayments, expen
                 </div>
               )}
               {srchOpen && srchQuery.trim().length > 0 && srchMatches.length === 0 && (
-                <div className="absolute z-30 mt-1 right-0 w-64 bg-white border border-gray-200 rounded-xl shadow-xl px-4 py-3 text-sm text-gray-400">No residents found</div>
+                <div className="absolute z-50 mt-1 right-0 w-64 bg-white border border-gray-200 rounded-xl shadow-xl px-4 py-3 text-sm text-gray-400">No residents found</div>
               )}
             </div>
           </div>
