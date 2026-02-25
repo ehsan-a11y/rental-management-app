@@ -559,8 +559,6 @@ function Dashboard({buildings, flats, partitions, residents, rentPayments, expen
 
   return (
     <div className="space-y-6">
-      {/* Resident Search */}
-      <ResidentSearch residents={residents} partitions={partitions} flats={flats} buildings={buildings} rentPayments={rentPayments}/>
       {/* Hero */}
       <div className="rounded-3xl p-6 relative overflow-hidden shadow-xl" style={{background:"linear-gradient(135deg,#1e1b4b,#312e81,#4f46e5)"}}>
         <div className="absolute -top-12 -right-12 w-48 h-48 rounded-full opacity-10" style={{background:"radial-gradient(circle,#a5b4fc,transparent)"}}/>
@@ -657,23 +655,8 @@ function Dashboard({buildings, flats, partitions, residents, rentPayments, expen
         </div>
       </div>
 
-      {/* Line + Expense breakdown */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-          <h3 className="font-extrabold text-gray-800 mb-1">Collection Trend</h3>
-          <p className="text-xs text-gray-400 mb-4">Collected vs expenses</p>
-          <ResponsiveContainer width="100%" height={190}>
-            <LineChart data={chartData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#f5f5f5" vertical={false}/>
-              <XAxis dataKey="month" tick={{fontSize:11,fill:"#9ca3af"}} axisLine={false} tickLine={false}/>
-              <YAxis tick={{fontSize:11,fill:"#9ca3af"}} axisLine={false} tickLine={false} tickFormatter={v=>`${v/1000}k`}/>
-              <Tooltip formatter={v=>`AED ${fmtN(v)}`} contentStyle={{borderRadius:14,border:"none",boxShadow:"0 8px 30px rgba(0,0,0,0.12)",fontSize:12}}/>
-              <Line type="monotone" dataKey="Collected" stroke="#6366f1" strokeWidth={3} dot={{r:5,fill:"#6366f1",strokeWidth:2,stroke:"#fff"}} activeDot={{r:7}}/>
-              <Line type="monotone" dataKey="Expenses"  stroke="#f87171" strokeWidth={2} strokeDasharray="6 3" dot={{r:4,fill:"#f87171",strokeWidth:2,stroke:"#fff"}}/>
-            </LineChart>
-          </ResponsiveContainer>
-        </div>
-        <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+      {/* Expense breakdown */}
+      <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
           <h3 className="font-extrabold text-gray-800 mb-1">Expense Breakdown</h3>
           <p className="text-xs text-gray-400 mb-4">{monLabel}</p>
           {expCat.length===0
@@ -700,7 +683,6 @@ function Dashboard({buildings, flats, partitions, residents, rentPayments, expen
                 </div>
               </div>
           }
-        </div>
       </div>
 
       {/* Flat performance */}
@@ -784,6 +766,9 @@ function Dashboard({buildings, flats, partitions, residents, rentPayments, expen
           </div>
         }
       </div>
+
+      {/* Resident Lookup */}
+      <ResidentSearch residents={residents} partitions={partitions} flats={flats} buildings={buildings} rentPayments={rentPayments}/>
     </div>
   );
 }
