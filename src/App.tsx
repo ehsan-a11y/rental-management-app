@@ -375,6 +375,149 @@ function ExpenseForm({init, flats, buildings, onSave, onClose}) {
   );
 }
 
+/* ── RESIDENT SEARCH ── */
+function ResidentSearch({residents, partitions, flats, buildings, rentPayments}) {
+  const [query, setQuery] = useState("");
+  const [selected, setSelected] = useState(null);
+  const [open, setOpen] = useState(false);
+
+  const matches = query.trim().length === 0 ? [] : residents.filter(r =>
+    r.fullName.toLowerCase().includes(query.toLowerCase()) ||
+    r.phone.includes(query)
+  );
+
+  const pick = r => { setSelected(r); setQuery(r.fullName); setOpen(false); };
+  const clear = () => { setSelected(null); setQuery(""); setOpen(false); };
+
+  const info = r => {
+    const part = partitions.find(x => x.id === r.partitionId);
+    const fl   = flats.find(x => x.id === part?.flatId);
+    const bld  = buildings.find(x => x.id === fl?.buildingId);
+    return { part, fl, bld };
+  };
+
+  const stayDuration = moveIn => {
+    const d1 = new Date(moveIn), d2 = new Date();
+    let months = (d2.getFullYear() - d1.getFullYear()) * 12 + (d2.getMonth() - d1.getMonth());
+    const years = Math.floor(months / 12); months = months % 12;
+    return [years > 0 ? `${years}y` : "", months > 0 ? `${months}mo` : ""].filter(Boolean).join(" ") || "< 1 month";
+  };
+
+  const pendingBalance = r => rentPayments
+    .filter(p => p.residentId === r.id)
+    .reduce((s, p) => s + Math.max(p.totalRent - p.paidAmount, 0), 0);
+
+  const sel = selected;
+  const selInfo = sel ? info(sel) : null;
+  const selBalance = sel ? pendingBalance(sel) : 0;
+
+  return (
+    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
+      <h3 className="font-extrabold text-gray-800 mb-1">Resident Lookup</h3>
+      <p className="text-xs text-gray-400 mb-3">Search by name or phone to view full details</p>
+      <div className="relative">
+        <div className="flex items-center gap-2">
+          <div className="relative flex-1">
+            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">🔍</span>
+            <input
+              className={`${inp} pl-8 pr-8`}
+              placeholder="Type resident name or phone…"
+              value={query}
+              onChange={e => { setQuery(e.target.value); setSelected(null); setOpen(true); }}
+              onFocus={() => setOpen(true)}
+            />
+            {query && (
+              <button onClick={clear} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 text-xs">✕</button>
+            )}
+          </div>
+        </div>
+        {/* Dropdown */}
+        {open && matches.length > 0 && (
+          <div className="absolute z-20 mt-1 w-full bg-white border border-gray-200 rounded-xl shadow-xl overflow-hidden">
+            {matches.slice(0,8).map(r => {
+              const {part, fl, bld} = info(r);
+              return (
+                <button key={r.id} onClick={() => pick(r)}
+                  className="w-full text-left px-4 py-3 hover:bg-indigo-50 transition-colors border-b border-gray-50 last:border-0 flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0"
+                    style={{background:"linear-gradient(135deg,#6366f1,#a855f7)"}}>{r.fullName.charAt(0)}</div>
+                  <div className="min-w-0">
+                    <p className="font-semibold text-gray-800 text-sm truncate">{r.fullName}</p>
+                    <p className="text-xs text-gray-400 truncate">{bld?.name} › {fl?.flatNumber} › {part?.partitionName}</p>
+                  </div>
+                  <Badge v={r.status}/>
+                </button>
+              );
+            })}
+          </div>
+        )}
+        {open && query.trim().length > 0 && matches.length === 0 && (
+          <div className="absolute z-20 mt-1 w-full bg-white border border-gray-200 rounded-xl shadow-xl px-4 py-3 text-sm text-gray-400">
+            No residents found
+          </div>
+        )}
+      </div>
+
+      {/* Detail card */}
+      {sel && selInfo && (
+        <div className="mt-4 rounded-xl border border-indigo-100 bg-indigo-50/40 overflow-hidden">
+          {/* Header */}
+          <div className="flex items-center gap-3 px-5 py-4 bg-indigo-600">
+            <div className="w-11 h-11 rounded-full flex items-center justify-center text-indigo-600 font-extrabold text-lg bg-white flex-shrink-0">
+              {sel.fullName.charAt(0)}
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-white font-extrabold text-lg leading-tight truncate">{sel.fullName}</p>
+              <p className="text-indigo-200 text-xs">{sel.phone}{sel.email ? ` · ${sel.email}` : ""}</p>
+            </div>
+            <Badge v={sel.status}/>
+          </div>
+          {/* Hierarchy */}
+          <div className="px-5 py-4 space-y-3">
+            <div className="flex items-center gap-2 text-sm flex-wrap">
+              <span className="flex items-center gap-1 bg-white rounded-lg px-3 py-1.5 border border-gray-200 font-medium text-indigo-700 shadow-sm">
+                🏙️ {selInfo.bld?.name}
+              </span>
+              <span className="text-gray-300">›</span>
+              <span className="flex items-center gap-1 bg-white rounded-lg px-3 py-1.5 border border-gray-200 font-medium text-blue-700 shadow-sm">
+                🏢 Flat {selInfo.fl?.flatNumber}
+              </span>
+              <span className="text-gray-300">›</span>
+              <span className="flex items-center gap-1 bg-white rounded-lg px-3 py-1.5 border border-gray-200 font-medium text-violet-700 shadow-sm">
+                🚪 {selInfo.part?.partitionName}
+              </span>
+            </div>
+            {/* Stats grid */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-2">
+              <div className="bg-white rounded-xl p-3 border border-gray-100 shadow-sm text-center">
+                <p className="text-xs text-gray-400 mb-1">Monthly Rent</p>
+                <p className="text-lg font-extrabold text-indigo-600">AED {fmtN(sel.monthlyRent)}</p>
+              </div>
+              <div className="bg-white rounded-xl p-3 border border-gray-100 shadow-sm text-center">
+                <p className="text-xs text-gray-400 mb-1">Stay Duration</p>
+                <p className="text-lg font-extrabold text-blue-600">{stayDuration(sel.moveInDate)}</p>
+                <p className="text-xs text-gray-400">since {sel.moveInDate}</p>
+              </div>
+              <div className="bg-white rounded-xl p-3 border border-gray-100 shadow-sm text-center">
+                <p className="text-xs text-gray-400 mb-1">Pending Balance</p>
+                <p className={`text-lg font-extrabold ${selBalance > 0 ? "text-red-500" : "text-emerald-500"}`}>
+                  AED {fmtN(selBalance)}
+                </p>
+                <p className="text-xs text-gray-400">{selBalance > 0 ? "outstanding" : "all clear"}</p>
+              </div>
+              <div className="bg-white rounded-xl p-3 border border-gray-100 shadow-sm text-center">
+                <p className="text-xs text-gray-400 mb-1">Room Size</p>
+                <p className="text-lg font-extrabold text-gray-700">{selInfo.part?.partitionSize || "—"}</p>
+                <p className="text-xs text-gray-400">sq ft</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 /* ── DASHBOARD ── */
 function Dashboard({buildings, flats, partitions, residents, rentPayments, expenses, onNav}) {
   const mon = nowMonth();
@@ -416,6 +559,8 @@ function Dashboard({buildings, flats, partitions, residents, rentPayments, expen
 
   return (
     <div className="space-y-6">
+      {/* Resident Search */}
+      <ResidentSearch residents={residents} partitions={partitions} flats={flats} buildings={buildings} rentPayments={rentPayments}/>
       {/* Hero */}
       <div className="rounded-3xl p-6 relative overflow-hidden shadow-xl" style={{background:"linear-gradient(135deg,#1e1b4b,#312e81,#4f46e5)"}}>
         <div className="absolute -top-12 -right-12 w-48 h-48 rounded-full opacity-10" style={{background:"radial-gradient(circle,#a5b4fc,transparent)"}}/>
