@@ -62,11 +62,12 @@ const Empty = ({msg}) => <div className="text-center py-14 text-gray-400 text-sm
 
 function Modal({title, onClose, children, wide}) {
   return (
-    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={onClose}>
-      <div className={`bg-white rounded-2xl shadow-2xl w-full ${wide?"max-w-2xl":"max-w-md"} max-h-[90vh] overflow-y-auto`} onClick={e=>e.stopPropagation()}>
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+    <div className="fixed inset-0 bg-black/50 z-50 flex items-end sm:items-center justify-center sm:p-4" onClick={onClose}>
+      <div className={`bg-white rounded-t-3xl sm:rounded-2xl shadow-2xl w-full ${wide?"sm:max-w-2xl":"sm:max-w-md"} max-h-[92vh] overflow-y-auto`} onClick={e=>e.stopPropagation()}>
+        <div className="flex items-center justify-center pt-3 pb-1 sm:hidden"><div className="w-10 h-1 bg-gray-200 rounded-full"/></div>
+        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 sticky top-0 bg-white z-10">
           <h3 className="font-semibold text-gray-800 text-lg">{title}</h3>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-700 text-xl">✕</button>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-700 text-xl w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100">✕</button>
         </div>
         <div className="px-6 py-5">{children}</div>
       </div>
@@ -593,31 +594,35 @@ function Dashboard({buildings, flats, partitions, residents, rentPayments, expen
   return (
     <div className="space-y-6">
       {/* Hero */}
-      <div className="rounded-3xl p-6 relative shadow-xl" style={{background:"linear-gradient(135deg,#1e1b4b,#312e81,#4f46e5)"}}>
+      <div className="rounded-3xl p-5 lg:p-6 relative shadow-xl" style={{background:"linear-gradient(135deg,#1e1b4b,#312e81,#4f46e5)"}}>
         <div className="absolute -top-12 -right-12 w-48 h-48 rounded-full opacity-10 pointer-events-none" style={{background:"radial-gradient(circle,#a5b4fc,transparent)"}}/>
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 relative">
-          <div>
-            <p className="text-indigo-300 text-sm">{today}</p>
-            <h1 className="text-white text-3xl font-extrabold mt-1">Property Dashboard</h1>
-            <p className="text-indigo-200 text-sm mt-1">{buildings.length} buildings · {flats.length} flats · {partitions.length} rooms</p>
+        <div className="relative">
+          {/* Title row */}
+          <div className="mb-4">
+            <p className="text-indigo-300 text-xs">{today}</p>
+            <h1 className="text-white text-2xl lg:text-3xl font-extrabold mt-0.5">Property Dashboard</h1>
+            <p className="text-indigo-200 text-xs mt-0.5">{buildings.length} buildings · {flats.length} flats · {partitions.length} rooms</p>
           </div>
-          <div className="flex gap-3 flex-wrap items-center">
-            {[
-              {label:"Collection Rate", val:`${colRate}%`,  color:colRate>=80?"#10b981":colRate>=50?"#f59e0b":"#f87171"},
-              {label:"Occupancy",       val:`${occRate}%`,  color:occRate>=80?"#10b981":"#f59e0b"},
-              {label:"Net Profit",      val:`AED ${fmtN(Math.abs(net))}`, color:net>=0?"#10b981":"#f87171"},
-            ].map(b=>(
-              <div key={b.label} className="rounded-2xl px-4 py-3 text-center border" style={{background:"rgba(255,255,255,0.1)",borderColor:"rgba(255,255,255,0.1)"}}>
-                <p className="text-2xl font-extrabold" style={{color:b.color}}>{b.val}</p>
-                <p className="text-indigo-200 text-xs mt-0.5">{b.label}</p>
-              </div>
-            ))}
-            {/* Inline resident search */}
-            <div className="relative">
+          {/* Stats + search */}
+          <div className="flex flex-col lg:flex-row lg:items-center gap-3">
+            <div className="grid grid-cols-3 gap-2 lg:flex lg:gap-3">
+              {[
+                {label:"Collection", val:`${colRate}%`,  color:colRate>=80?"#10b981":colRate>=50?"#f59e0b":"#f87171"},
+                {label:"Occupancy",  val:`${occRate}%`,  color:occRate>=80?"#10b981":"#f59e0b"},
+                {label:"Net Profit", val:`AED ${fmtN(Math.abs(net))}`, color:net>=0?"#10b981":"#f87171"},
+              ].map(b=>(
+                <div key={b.label} className="rounded-2xl px-3 lg:px-4 py-2.5 lg:py-3 text-center border flex-1" style={{background:"rgba(255,255,255,0.1)",borderColor:"rgba(255,255,255,0.1)"}}>
+                  <p className="text-lg lg:text-2xl font-extrabold leading-tight" style={{color:b.color}}>{b.val}</p>
+                  <p className="text-indigo-200 text-[10px] lg:text-xs mt-0.5">{b.label}</p>
+                </div>
+              ))}
+            </div>
+            {/* Resident search */}
+            <div className="relative flex-1 lg:flex-none">
               <div className="relative">
                 <span className="absolute left-3 top-1/2 -translate-y-1/2 text-white/50 text-sm">🔍</span>
                 <input
-                  className="rounded-2xl px-4 py-3 pl-9 pr-8 text-sm text-white placeholder-white/50 border outline-none focus:ring-2 focus:ring-white/30 w-52"
+                  className="rounded-2xl px-4 py-2.5 lg:py-3 pl-9 pr-8 text-sm text-white placeholder-white/50 border outline-none focus:ring-2 focus:ring-white/30 w-full lg:w-52"
                   style={{background:"rgba(255,255,255,0.1)",borderColor:"rgba(255,255,255,0.1)"}}
                   placeholder="Search resident…"
                   value={srchQuery}
@@ -630,7 +635,7 @@ function Dashboard({buildings, flats, partitions, residents, rentPayments, expen
                 )}
               </div>
               {srchOpen && srchMatches.length > 0 && (
-                <div className="absolute z-50 mt-1 right-0 w-72 bg-white border border-gray-200 rounded-xl shadow-2xl overflow-hidden">
+                <div className="absolute z-50 mt-1 left-0 right-0 lg:right-0 lg:left-auto w-auto lg:w-72 bg-white border border-gray-200 rounded-xl shadow-2xl overflow-hidden">
                   {srchMatches.slice(0,6).map(r=>{
                     const {part,fl,bld}=srchInfo(r);
                     return (
@@ -649,7 +654,7 @@ function Dashboard({buildings, flats, partitions, residents, rentPayments, expen
                 </div>
               )}
               {srchOpen && srchQuery.trim().length > 0 && srchMatches.length === 0 && (
-                <div className="absolute z-50 mt-1 right-0 w-64 bg-white border border-gray-200 rounded-xl shadow-xl px-4 py-3 text-sm text-gray-400">No residents found</div>
+                <div className="absolute z-50 mt-1 left-0 right-0 lg:right-0 lg:left-auto bg-white border border-gray-200 rounded-xl shadow-xl px-4 py-3 text-sm text-gray-400">No residents found</div>
               )}
             </div>
           </div>
@@ -708,7 +713,7 @@ function Dashboard({buildings, flats, partitions, residents, rentPayments, expen
       </div>
 
       {/* KPI row 2 */}
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         {[
           {icon:"✅",label:"Collected",   val:`AED ${fmtN(collected)}`, sub:`${colRate}% of target`,   pct:colRate,   bg:"linear-gradient(135deg,#ecfdf5,#d1fae5)", tc:"text-emerald-800", bc:"#10b981", pc:"bg-emerald-100 text-emerald-700"},
           {icon:"⏳",label:"Pending",     val:`AED ${fmtN(pending)}`,   sub:`${100-colRate}% outstanding`, pct:100-colRate, bg:"linear-gradient(135deg,#fffbeb,#fef3c7)", tc:"text-amber-800",   bc:"#f59e0b", pc:"bg-amber-100 text-amber-700"},
@@ -1146,8 +1151,37 @@ function ResidentsPage({residents, partitions, flats, buildings, onAdd, onEdit, 
         <input className={`${inp} max-w-xs`} placeholder="Search name…" value={search} onChange={e=>setSearch(e.target.value)}/>
         {["All","Active","Vacated"].map(s=><button key={s} onClick={()=>setFilter(s)} className={btnCls(filter===s?"bg-indigo-600 text-white":"bg-gray-100 text-gray-600 hover:bg-gray-200")}>{s}</button>)}
       </div>
-      {filtered.length===0 ? <Empty msg="No residents found."/> :
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+      {filtered.length===0 ? <Empty msg="No residents found."/> : <>
+        {/* Mobile cards */}
+        <div className="lg:hidden space-y-3">
+          {filtered.map(r=>{
+            const {p,fl,b}=info(r);
+            return (
+              <div key={r.id} className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold flex-shrink-0" style={{background:"linear-gradient(135deg,#6366f1,#a855f7)"}}>{r.fullName.charAt(0)}</div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-bold text-gray-800 truncate">{r.fullName}</p>
+                    <p className="text-xs text-gray-400">{r.phone}</p>
+                  </div>
+                  <Badge v={r.status}/>
+                </div>
+                <div className="grid grid-cols-2 gap-2 text-xs mb-3">
+                  <div className="bg-indigo-50 rounded-xl p-2"><p className="text-indigo-400 mb-0.5">Building</p><p className="font-semibold text-indigo-700 truncate">{b?.name||"—"}</p></div>
+                  <div className="bg-blue-50 rounded-xl p-2"><p className="text-blue-400 mb-0.5">Flat / Room</p><p className="font-semibold text-blue-700">{fl?.flatNumber} › {p?.partitionName||"—"}</p></div>
+                  <div className="bg-gray-50 rounded-xl p-2"><p className="text-gray-400 mb-0.5">Move-in</p><p className="font-semibold text-gray-700">{r.moveInDate}</p></div>
+                  <div className="bg-emerald-50 rounded-xl p-2"><p className="text-emerald-400 mb-0.5">Rent</p><p className="font-semibold text-emerald-700">AED {fmtN(r.monthlyRent)}</p></div>
+                </div>
+                <div className="flex gap-2">
+                  <button onClick={()=>onEdit(r)} className={`flex-1 ${btnCls("bg-indigo-50 hover:bg-indigo-100 text-indigo-600 text-xs")}`}>✏️ Edit</button>
+                  <button onClick={()=>onDelete(r.id)} className={`flex-1 ${btnCls("bg-red-50 hover:bg-red-100 text-red-500 text-xs")}`}>🗑️ Remove</button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+        {/* Desktop table */}
+        <div className="hidden lg:block bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
           <table className="w-full">
             <thead className="border-b border-gray-100 bg-gray-50"><tr>{["Name","Building","Flat/Room","Phone","Move-in","Status","Actions"].map(h=><Th key={h} c={h}/>)}</tr></thead>
             <tbody>
@@ -1167,7 +1201,7 @@ function ResidentsPage({residents, partitions, flats, buildings, onAdd, onEdit, 
             </tbody>
           </table>
         </div>
-      }
+      </>}
     </div>
   );
 }
@@ -1188,13 +1222,42 @@ function RentPage({rentPayments, residents, partitions, flats, buildings, onAdd,
           <button onClick={onAdd} className={btnCls("bg-indigo-600 hover:bg-indigo-700 text-white")}>+ Record Payment</button>
         </div>
       </div>
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <KpiCard icon="✅" label="Collected This Month" value={`AED ${fmtN(totCol)}`}  sub={`${monPay.filter(p=>p.paymentStatus==="PAID").length} fully paid`}     grad="linear-gradient(135deg,#064e3b,#059669)" badge="Received"/>
         <KpiCard icon="⏳" label="Pending Balance"    value={`AED ${fmtN(totPend)}`} sub={`${monPay.filter(p=>p.paymentStatus==="UNPAID").length} unpaid records`}  grad="linear-gradient(135deg,#78350f,#d97706)" badge="Outstanding"/>
         <KpiCard icon="📋" label="Total Records"      value={monPay.length}           sub={`${monPay.filter(p=>p.paymentStatus==="PARTIALLY_PAID").length} partial payments`} grad="linear-gradient(135deg,#1e1b4b,#4f46e5)" badge={mon}/>
       </div>
-      {monPay.length===0 ? <Empty msg={`No payments for ${mon}.`}/> :
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-x-auto">
+      {monPay.length===0 ? <Empty msg={`No payments for ${mon}.`}/> : <>
+        {/* Mobile cards */}
+        <div className="lg:hidden space-y-3">
+          {monPay.map(p=>{
+            const {res,part,fl,b}=info(p);
+            const bal=p.totalRent-p.paidAmount;
+            return (
+              <div key={p.id} className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
+                <div className="flex items-center justify-between mb-3">
+                  <div>
+                    <p className="font-bold text-gray-800">{res?.fullName}</p>
+                    <p className="text-xs text-indigo-500">{b?.name} › {fl?.flatNumber} › {part?.partitionName}</p>
+                  </div>
+                  <Badge v={p.paymentStatus}/>
+                </div>
+                <div className="grid grid-cols-3 gap-2 text-xs mb-3">
+                  <div className="bg-gray-50 rounded-xl p-2 text-center"><p className="text-gray-400 mb-0.5">Total</p><p className="font-bold text-gray-700">AED {fmtN(p.totalRent)}</p></div>
+                  <div className="bg-emerald-50 rounded-xl p-2 text-center"><p className="text-emerald-400 mb-0.5">Paid</p><p className="font-bold text-emerald-600">AED {fmtN(p.paidAmount)}</p></div>
+                  <div className={`rounded-xl p-2 text-center ${bal>0?"bg-red-50":"bg-gray-50"}`}><p className={`mb-0.5 ${bal>0?"text-red-400":"text-gray-400"}`}>Balance</p><p className={`font-bold ${bal>0?"text-red-500":"text-gray-400"}`}>AED {fmtN(bal)}</p></div>
+                </div>
+                {p.paymentDate && <p className="text-xs text-gray-400 mb-3">📅 {p.paymentDate}</p>}
+                <div className="flex gap-2">
+                  <button onClick={()=>onEdit(p)} className={`flex-1 ${btnCls("bg-indigo-50 hover:bg-indigo-100 text-indigo-600 text-xs")}`}>✏️ Edit</button>
+                  <button onClick={()=>onDelete(p.id)} className={`flex-1 ${btnCls("bg-red-50 hover:bg-red-100 text-red-500 text-xs")}`}>🗑️ Delete</button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+        {/* Desktop table */}
+        <div className="hidden lg:block bg-white rounded-2xl shadow-sm border border-gray-100 overflow-x-auto">
           <table className="w-full">
             <thead className="border-b border-gray-100 bg-gray-50"><tr>{["Resident","Building","Flat/Room","Total","Paid","Balance","Date","Status","Actions"].map(h=><Th key={h} c={h}/>)}</tr></thead>
             <tbody>
@@ -1218,7 +1281,7 @@ function RentPage({rentPayments, residents, partitions, flats, buildings, onAdd,
             </tbody>
           </table>
         </div>
-      }
+      </>}
     </div>
   );
 }
@@ -1255,8 +1318,30 @@ function ExpensesPage({expenses, flats, buildings, onAdd, onDelete}) {
           </div>
         ))}
       </div>
-      {filtered.length===0 ? <Empty msg="No expenses for selected period."/> :
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+      {filtered.length===0 ? <Empty msg="No expenses for selected period."/> : <>
+        {/* Mobile cards */}
+        <div className="lg:hidden space-y-3">
+          {filtered.sort((a,b)=>b.expenseDate.localeCompare(a.expenseDate)).map(e=>{
+            const fl=flats.find(f=>f.id===e.flatId),b=buildings.find(x=>x.id===fl?.buildingId);
+            return (
+              <div key={e.id} className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
+                <div className="flex items-center justify-between mb-2">
+                  <div>
+                    <p className="font-bold text-gray-800">{e.title}</p>
+                    <p className="text-xs text-indigo-500">{b?.name} › {fl?.flatNumber}</p>
+                  </div>
+                  <p className="text-lg font-extrabold text-red-500">AED {fmtN(e.amount)}</p>
+                </div>
+                <div className="flex items-center justify-between">
+                  <p className="text-xs text-gray-400">📅 {e.expenseDate}{e.notes?` · ${e.notes}`:""}</p>
+                  <button onClick={()=>onDelete(e.id)} className={btnCls("bg-red-50 hover:bg-red-100 text-red-500 text-xs")}>🗑️ Delete</button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+        {/* Desktop table */}
+        <div className="hidden lg:block bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
           <table className="w-full">
             <thead className="border-b border-gray-100 bg-gray-50"><tr>{["Category","Building","Flat","Amount","Date","Notes","Actions"].map(h=><Th key={h} c={h}/>)}</tr></thead>
             <tbody>
@@ -1276,7 +1361,7 @@ function ExpensesPage({expenses, flats, buildings, onAdd, onDelete}) {
             </tbody>
           </table>
         </div>
-      }
+      </>}
     </div>
   );
 }
@@ -1384,15 +1469,15 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-gray-50 flex" style={{fontFamily:"'Inter',system-ui,sans-serif"}}>
-      {sideOpen && <div className="fixed inset-0 bg-black/30 z-40 lg:hidden" onClick={()=>setSideOpen(false)}/>}
-      <aside className={`fixed lg:sticky top-0 left-0 h-screen w-60 bg-white border-r border-gray-100 shadow-sm z-50 flex flex-col transition-transform duration-200 ${sideOpen?"translate-x-0":"-translate-x-full lg:translate-x-0"}`}>
+      {/* Desktop sidebar */}
+      <aside className="hidden lg:flex sticky top-0 h-screen w-60 bg-white border-r border-gray-100 shadow-sm flex-col flex-shrink-0">
         <div className="px-5 py-6 border-b border-gray-100">
           <div className="flex items-center gap-2">
             <span className="text-2xl">🏠</span>
             <div><p className="font-bold text-gray-800 text-sm">RentManage</p><p className="text-xs text-gray-400">Property Manager</p></div>
           </div>
         </div>
-        <nav className="flex-1 py-4 px-3 space-y-1">
+        <nav className="flex-1 py-4 px-3 space-y-1 overflow-y-auto">
           {NAV.map(n=>(
             <button key={n.id} onClick={()=>nav(n.id)}
               className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all ${isActive(n.id)?"bg-indigo-600 text-white shadow-sm":"text-gray-600 hover:bg-gray-100"}`}>
@@ -1403,11 +1488,15 @@ export default function App() {
       </aside>
 
       <main className="flex-1 min-w-0">
-        <div className="bg-white border-b border-gray-100 px-4 py-3 flex items-center gap-3 lg:hidden">
-          <button onClick={()=>setSideOpen(true)} className="text-gray-500 text-xl">☰</button>
-          <span className="font-semibold text-gray-800">RentManage</span>
+        {/* Mobile top header */}
+        <div className="bg-white border-b border-gray-100 px-4 py-3 flex items-center justify-between lg:hidden sticky top-0 z-30 shadow-sm">
+          <div className="flex items-center gap-2">
+            <span className="text-xl">🏠</span>
+            <span className="font-bold text-gray-800 text-sm">RentManage</span>
+          </div>
+          <span className="text-sm font-medium text-indigo-600">{NAV.find(n=>isActive(n.id))?.label||"Dashboard"}</span>
         </div>
-        <div className="p-4 lg:p-8 max-w-7xl mx-auto">
+        <div className="p-4 lg:p-8 max-w-7xl mx-auto pb-24 lg:pb-8">
           {page==="dashboard" && <Dashboard buildings={buildings} flats={flats} partitions={partitions} residents={residents} rentPayments={rentPayments} expenses={expenses} onNav={nav}/>}
           {page==="buildings" && <BuildingsPage buildings={buildings} flats={flats} partitions={partitions} residents={residents} expenses={expenses} rentPayments={rentPayments} onAdd={()=>setModal({type:"building"})} onEdit={b=>setModal({type:"building",data:b})} onDelete={id=>setConfirm({msg:"Delete this building and all its data?",action:()=>deleteBuilding(id)})}/>}
           {page==="flats" && <FlatsPage buildings={buildings} flats={flats} partitions={partitions} residents={residents} onAdd={()=>setModal({type:"flat"})} onEdit={fl=>setModal({type:"flat",data:fl})} onDelete={id=>setConfirm({msg:"Delete this flat?",action:()=>deleteFlat(id)})} onView={fl=>{setSelFlat(fl);setPage("flatDetail");}}/>}
@@ -1432,6 +1521,20 @@ export default function App() {
           {page==="expenses"  && <ExpensesPage expenses={expenses} flats={flats} buildings={buildings} onAdd={()=>setModal({type:"expense"})} onDelete={id=>setConfirm({msg:"Delete this expense?",action:()=>deleteExpense(id)})}/>}
         </div>
       </main>
+
+      {/* Mobile bottom navigation */}
+      <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 z-40 lg:hidden shadow-[0_-4px_20px_rgba(0,0,0,0.08)]">
+        <div className="flex items-center justify-around px-1 py-1">
+          {NAV.map(n=>(
+            <button key={n.id} onClick={()=>nav(n.id)}
+              className={`flex flex-col items-center gap-0.5 px-2 py-2 rounded-xl transition-all flex-1 ${isActive(n.id)?"text-indigo-600":"text-gray-400 hover:text-gray-600"}`}>
+              <span className={`text-xl transition-transform duration-150 ${isActive(n.id)?"scale-110":""}`}>{n.icon}</span>
+              <span className={`text-[9px] font-semibold tracking-wide ${isActive(n.id)?"text-indigo-600":"text-gray-400"}`}>{n.label.split(" ")[0]}</span>
+              {isActive(n.id) && <div className="w-1 h-1 rounded-full bg-indigo-600 mt-0.5"/>}
+            </button>
+          ))}
+        </div>
+      </nav>
 
       {modal?.type==="building"  && <Modal title={modal.data?.id?"Edit Building":"Add Building"}   onClose={close}><BuildingForm   key={modal.data?.id||"new"} init={modal.data} onSave={saveBuilding} onClose={close}/></Modal>}
       {modal?.type==="flat"      && <Modal title={modal.data?.id?"Edit Flat":"Add Flat"}            onClose={close}><FlatForm       key={modal.data?.id||"new"} init={modal.data} buildings={buildings} onSave={saveFlat} onClose={close}/></Modal>}
