@@ -1410,6 +1410,11 @@ function AdminPage({currentUser,onLogout}:{currentUser:AuthUser;onLogout:()=>voi
   const [inviteLink,setInviteLink]=useState("");
   const [copied,setCopied]=useState(false);
   const [confirmDel,setConfirmDel]=useState<string|null>(null);
+  const [resetUserId,setResetUserId]=useState<string|null>(null);
+  const [newPw,setNewPw]=useState("");
+  const [newPwConfirm,setNewPwConfirm]=useState("");
+  const [pwErr,setPwErr]=useState("");
+  const [pwOk,setPwOk]=useState(false);
 
   const generateInvite=()=>{
     const token=uid()+uid()+uid();
@@ -1426,6 +1431,19 @@ function AdminPage({currentUser,onLogout}:{currentUser:AuthUser;onLogout:()=>voi
     if(userId===currentUser.id)return;
     const updated={...store,users:store.users.filter(u=>u.id!==userId)};
     saveAuthStore(updated);setStore(updated);setConfirmDel(null);
+  };
+  const openReset=(userId:string)=>{setResetUserId(userId);setNewPw("");setNewPwConfirm("");setPwErr("");setPwOk(false);};
+  const cancelReset=()=>{setResetUserId(null);setPwErr("");setPwOk(false);};
+  const doReset=()=>{
+    if(newPw.length<6){setPwErr("Min 6 characters");return;}
+    if(newPw!==newPwConfirm){setPwErr("Passwords do not match");return;}
+    const user=store.users.find(u=>u.id===resetUserId);
+    if(!user)return;
+    user.passwordHash=hashPw(user.username,newPw);
+    const updated={...store,users:[...store.users]};
+    saveAuthStore(updated);setStore(updated);
+    setPwOk(true);setPwErr("");
+    setTimeout(()=>cancelReset(),1500);
   };
 
   return (
@@ -1459,6 +1477,7 @@ function AdminPage({currentUser,onLogout}:{currentUser:AuthUser;onLogout:()=>voi
             </thead>
             <tbody>
               {store.users.map(u=>(
+                <>
                 <tr key={u.id} className="border-b border-gray-50 hover:bg-gray-50/50">
                   <Td c={
                     <span className="flex items-center gap-2">
@@ -1473,10 +1492,37 @@ function AdminPage({currentUser,onLogout}:{currentUser:AuthUser;onLogout:()=>voi
                   <Td c={<span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${u.isAdmin?"bg-indigo-100 text-indigo-700":"bg-gray-100 text-gray-600"}`}>{u.isAdmin?"Admin":"User"}</span>}/>
                   <Td c={u.createdAt.slice(0,10)}/>
                   <Td c={u.id!==currentUser.id
-                    ? <button onClick={()=>setConfirmDel(u.id)} className="text-red-400 hover:text-red-600 text-sm font-medium">Remove</button>
+                    ? <span className="flex items-center gap-3">
+                        <button onClick={()=>resetUserId===u.id?cancelReset():openReset(u.id)} className="text-indigo-400 hover:text-indigo-600 text-sm font-medium">
+                          {resetUserId===u.id?"Cancel":"Reset Password"}
+                        </button>
+                        <button onClick={()=>setConfirmDel(u.id)} className="text-red-400 hover:text-red-600 text-sm font-medium">Remove</button>
+                      </span>
                     : <span className="text-gray-300 text-sm">—</span>
                   }/>
                 </tr>
+                {resetUserId===u.id && (
+                  <tr key={u.id+"-reset"} className="bg-indigo-50/60">
+                    <td colSpan={4} className="px-6 py-4">
+                      <p className="text-sm font-medium text-indigo-700 mb-3">Set new password for <strong>{u.username}</strong></p>
+                      <div className="flex flex-wrap gap-3 items-end">
+                        <div className="flex-1 min-w-36">
+                          <label className="text-xs text-gray-500 mb-1 block">New Password</label>
+                          <input className={inp} type="password" value={newPw} onChange={e=>{setNewPw(e.target.value);setPwErr("");}} placeholder="Min 6 characters"/>
+                        </div>
+                        <div className="flex-1 min-w-36">
+                          <label className="text-xs text-gray-500 mb-1 block">Confirm Password</label>
+                          <input className={inp} type="password" value={newPwConfirm} onChange={e=>{setNewPwConfirm(e.target.value);setPwErr("");}} placeholder="Repeat password" onKeyDown={e=>e.key==="Enter"&&doReset()}/>
+                        </div>
+                        <button onClick={doReset} className={btnCls("bg-indigo-600 hover:bg-indigo-700 text-white flex-shrink-0")}>
+                          {pwOk?"✓ Saved!":"Save Password"}
+                        </button>
+                      </div>
+                      {pwErr && <p className="text-xs text-red-500 mt-2">{pwErr}</p>}
+                    </td>
+                  </tr>
+                )}
+                </>
               ))}
             </tbody>
           </table>
