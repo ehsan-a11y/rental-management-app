@@ -443,8 +443,8 @@ function Dashboard({buildings, flats, partitions, residents, rentPayments, expen
       {/* KPI row 1 */}
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
         <KpiCard icon="🏙️" label="Buildings"    value={buildings.length}  sub={`${flats.length} flats`}       grad="linear-gradient(135deg,#4f46e5,#7c3aed)" onClick={()=>onNav("buildings")}/>
-        <KpiCard icon="👥" label="Residents"     value={activeRes.length}  sub={`${residents.filter(r=>r.status==="Vacated").length} vacated`} grad="linear-gradient(135deg,#0284c7,#0891b2)"/>
-        <KpiCard icon="🚪" label="Empty Slots"   value={emptySlots}        sub={`of ${totalSlots} total`}     grad="linear-gradient(135deg,#0f766e,#059669)" badge={emptySlots>0?"Available":"Full"}/>
+        <KpiCard icon="👥" label="Residents"     value={activeRes.length}  sub={`${residents.filter(r=>r.status==="Vacated").length} vacated`} grad="linear-gradient(135deg,#0284c7,#0891b2)" onClick={()=>onNav("residents")}/>
+        <KpiCard icon="🚪" label="Empty Slots"   value={emptySlots}        sub={`of ${totalSlots} total`}     grad="linear-gradient(135deg,#0f766e,#059669)" badge={emptySlots>0?"Available":"Full"} onClick={()=>onNav("flats")}/>
         <KpiCard icon="📊" label="Est. Rent"     value={`AED ${fmtN(estRent)}`} sub="monthly target"        grad="linear-gradient(135deg,#b45309,#d97706)"/>
         <KpiCard icon="💰" label="Net Profit"    value={`AED ${fmtN(Math.abs(net))}`} sub={net>=0?"profit":"loss"} grad={net>=0?"linear-gradient(135deg,#15803d,#16a34a)":"linear-gradient(135deg,#b91c1c,#dc2626)"}/>
       </div>
