@@ -557,7 +557,7 @@ function Dashboard({buildings, flats, partitions, residents, rentPayments, expen
 
   const chartData = useMemo(()=>{
     const arr=[];
-    for(let i=5;i>=0;i--){
+    for(let i=2;i>=0;i--){
       const d=new Date(); d.setMonth(d.getMonth()-i);
       const m=d.toISOString().slice(0,7);
       const col=rentPayments.filter(r=>r.month===m).reduce((s,r)=>s+r.paidAmount,0);
@@ -717,73 +717,74 @@ function Dashboard({buildings, flats, partitions, residents, rentPayments, expen
         </div>
       </div>
 
-      {/* Revenue Overview */}
-      <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-        <h3 className="font-extrabold text-gray-800 mb-1">Revenue Overview</h3>
-        <p className="text-xs text-gray-400 mb-4">Last 6 months</p>
-        <ResponsiveContainer width="100%" height={210}>
-          <BarChart data={chartData} barGap={3} barCategoryGap="28%">
-            <defs>
-              {[["cg","#6366f1","#818cf8"],["eg","#f87171","#fca5a5"],["ng","#10b981","#34d399"]].map(([id,c1,c2])=>(
-                <linearGradient key={id} id={id} x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor={c1}/><stop offset="100%" stopColor={c2}/></linearGradient>
-              ))}
-            </defs>
-            <CartesianGrid strokeDasharray="3 3" stroke="#f5f5f5" vertical={false}/>
-            <XAxis dataKey="month" tick={{fontSize:11,fill:"#9ca3af"}} axisLine={false} tickLine={false}/>
-            <YAxis tick={{fontSize:11,fill:"#9ca3af"}} axisLine={false} tickLine={false} tickFormatter={v=>`${v/1000}k`}/>
-            <Tooltip formatter={v=>`AED ${fmtN(v)}`} contentStyle={{borderRadius:14,border:"none",boxShadow:"0 8px 30px rgba(0,0,0,0.12)",fontSize:12}}/>
-            <Bar dataKey="Collected" fill="url(#cg)" radius={[6,6,0,0]}/>
-            <Bar dataKey="Expenses"  fill="url(#eg)" radius={[6,6,0,0]}/>
-            <Bar dataKey="Net"       fill="url(#ng)" radius={[6,6,0,0]}/>
-          </BarChart>
-        </ResponsiveContainer>
-        <div className="flex gap-4 mt-2 justify-center text-xs text-gray-400">
-          {[["#6366f1","Collected"],["#f87171","Expenses"],["#10b981","Net"]].map(([c,l])=>(
-            <span key={l} className="flex items-center gap-1"><span className="w-3 h-3 rounded-sm inline-block" style={{background:c}}/>{l}</span>
-          ))}
+      {/* Revenue Overview + Flat Performance side by side */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+          <h3 className="font-extrabold text-gray-800 mb-1">Revenue Overview</h3>
+          <p className="text-xs text-gray-400 mb-4">Last 3 months</p>
+          <ResponsiveContainer width="100%" height={210}>
+            <BarChart data={chartData} barGap={3} barCategoryGap="28%">
+              <defs>
+                {[["cg","#6366f1","#818cf8"],["eg","#f87171","#fca5a5"],["ng","#10b981","#34d399"]].map(([id,c1,c2])=>(
+                  <linearGradient key={id} id={id} x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor={c1}/><stop offset="100%" stopColor={c2}/></linearGradient>
+                ))}
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" stroke="#f5f5f5" vertical={false}/>
+              <XAxis dataKey="month" tick={{fontSize:11,fill:"#9ca3af"}} axisLine={false} tickLine={false}/>
+              <YAxis tick={{fontSize:11,fill:"#9ca3af"}} axisLine={false} tickLine={false} tickFormatter={v=>`${v/1000}k`}/>
+              <Tooltip formatter={v=>`AED ${fmtN(v)}`} contentStyle={{borderRadius:14,border:"none",boxShadow:"0 8px 30px rgba(0,0,0,0.12)",fontSize:12}}/>
+              <Bar dataKey="Collected" fill="url(#cg)" radius={[6,6,0,0]}/>
+              <Bar dataKey="Expenses"  fill="url(#eg)" radius={[6,6,0,0]}/>
+              <Bar dataKey="Net"       fill="url(#ng)" radius={[6,6,0,0]}/>
+            </BarChart>
+          </ResponsiveContainer>
+          <div className="flex gap-4 mt-2 justify-center text-xs text-gray-400">
+            {[["#6366f1","Collected"],["#f87171","Expenses"],["#10b981","Net"]].map(([c,l])=>(
+              <span key={l} className="flex items-center gap-1"><span className="w-3 h-3 rounded-sm inline-block" style={{background:c}}/>{l}</span>
+            ))}
+          </div>
         </div>
-      </div>
 
-      {/* Flat performance */}
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-        <div className="px-6 py-4 border-b border-gray-50">
-          <h3 className="font-extrabold text-gray-800">Flat Performance</h3>
-          <p className="text-xs text-gray-400 mt-0.5">Occupancy & collection per flat · {monLabel}</p>
-        </div>
-        {flats.length===0 ? <Empty msg="No flats added yet."/> :
-          <div className="divide-y divide-gray-50">
-            {flats.map(fl=>{
-              const b=buildings.find(x=>x.id===fl.buildingId);
-              const parts=partitions.filter(p=>p.flatId===fl.id);
-              const ts=parts.reduce((s,p)=>s+p.maxResidents,0);
-              const ar=residents.filter(r=>r.status==="Active"&&parts.some(p=>p.id===r.partitionId));
-              const occ=ts>0?Math.round((ar.length/ts)*100):0;
-              const rIds=ar.map(r=>r.id);
-              const col=rentPayments.filter(r=>r.month===mon&&rIds.includes(r.residentId)).reduce((s,r)=>s+r.paidAmount,0);
-              const est=parts.reduce((s,p)=>s+p.monthlyRent,0);
-              const cp=est>0?Math.round((col/est)*100):0;
-              const occColor=occ>=80?"#10b981":occ>=50?"#f59e0b":"#f87171";
-              return (
-                <div key={fl.id} className="px-6 py-4 hover:bg-gray-50/60 transition-colors">
-                  <div className="flex items-center gap-4 flex-wrap">
-                    <div className="w-10 h-10 rounded-xl flex items-center justify-center text-white font-extrabold text-sm flex-shrink-0" style={{background:"linear-gradient(135deg,#6366f1,#8b5cf6)"}}>{fl.flatNumber.slice(0,2)}</div>
-                    <div className="w-28 flex-shrink-0"><p className="font-bold text-gray-800 text-sm">{fl.flatNumber}</p><p className="text-xs text-indigo-400">{b?.name}</p></div>
-                    <div className="flex-1 min-w-28">
-                      <div className="flex justify-between text-xs mb-1"><span className="text-gray-400">Occupancy</span><span className="font-bold" style={{color:occColor}}>{occ}%</span></div>
-                      <div className="w-full bg-gray-100 rounded-full h-1.5"><div className="h-1.5 rounded-full" style={{width:`${occ}%`,background:occColor}}/></div>
-                      <p className="text-xs text-gray-400 mt-0.5">{ar.length}/{ts} residents</p>
-                    </div>
-                    <div className="flex-1 min-w-28">
-                      <div className="flex justify-between text-xs mb-1"><span className="text-gray-400">Collection</span><span className="font-bold text-indigo-500">{cp}%</span></div>
-                      <div className="w-full bg-gray-100 rounded-full h-1.5"><div className="h-1.5 rounded-full bg-indigo-400" style={{width:`${cp}%`}}/></div>
-                      <p className="text-xs text-gray-400 mt-0.5">AED {fmtN(col)} / {fmtN(est)}</p>
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+          <div className="px-6 py-4 border-b border-gray-50">
+            <h3 className="font-extrabold text-gray-800">Flat Performance</h3>
+            <p className="text-xs text-gray-400 mt-0.5">Occupancy & collection per flat · {monLabel}</p>
+          </div>
+          {flats.length===0 ? <Empty msg="No flats added yet."/> :
+            <div className="divide-y divide-gray-50">
+              {flats.map(fl=>{
+                const b=buildings.find(x=>x.id===fl.buildingId);
+                const parts=partitions.filter(p=>p.flatId===fl.id);
+                const ts=parts.reduce((s,p)=>s+p.maxResidents,0);
+                const ar=residents.filter(r=>r.status==="Active"&&parts.some(p=>p.id===r.partitionId));
+                const occ=ts>0?Math.round((ar.length/ts)*100):0;
+                const rIds=ar.map(r=>r.id);
+                const col=rentPayments.filter(r=>r.month===mon&&rIds.includes(r.residentId)).reduce((s,r)=>s+r.paidAmount,0);
+                const est=parts.reduce((s,p)=>s+p.monthlyRent,0);
+                const cp=est>0?Math.round((col/est)*100):0;
+                const occColor=occ>=80?"#10b981":occ>=50?"#f59e0b":"#f87171";
+                return (
+                  <div key={fl.id} className="px-6 py-4 hover:bg-gray-50/60 transition-colors">
+                    <div className="flex items-center gap-4 flex-wrap">
+                      <div className="w-10 h-10 rounded-xl flex items-center justify-center text-white font-extrabold text-sm flex-shrink-0" style={{background:"linear-gradient(135deg,#6366f1,#8b5cf6)"}}>{fl.flatNumber.slice(0,2)}</div>
+                      <div className="w-28 flex-shrink-0"><p className="font-bold text-gray-800 text-sm">{fl.flatNumber}</p><p className="text-xs text-indigo-400">{b?.name}</p></div>
+                      <div className="flex-1 min-w-28">
+                        <div className="flex justify-between text-xs mb-1"><span className="text-gray-400">Occupancy</span><span className="font-bold" style={{color:occColor}}>{occ}%</span></div>
+                        <div className="w-full bg-gray-100 rounded-full h-1.5"><div className="h-1.5 rounded-full" style={{width:`${occ}%`,background:occColor}}/></div>
+                        <p className="text-xs text-gray-400 mt-0.5">{ar.length}/{ts} residents</p>
+                      </div>
+                      <div className="flex-1 min-w-28">
+                        <div className="flex justify-between text-xs mb-1"><span className="text-gray-400">Collection</span><span className="font-bold text-indigo-500">{cp}%</span></div>
+                        <div className="w-full bg-gray-100 rounded-full h-1.5"><div className="h-1.5 rounded-full bg-indigo-400" style={{width:`${cp}%`}}/></div>
+                        <p className="text-xs text-gray-400 mt-0.5">AED {fmtN(col)} / {fmtN(est)}</p>
+                      </div>
                     </div>
                   </div>
-                </div>
-              );
-            })}
-          </div>
-        }
+                );
+              })}
+            </div>
+          }
+        </div>
       </div>
 
       {/* Recent Payments */}
