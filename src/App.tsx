@@ -116,27 +116,43 @@ function KpiCard({icon, label, value, sub, grad, badge, progress, progressMax, o
   );
 }
 
-function DonutRing({paid, partial, unpaid}) {
+function DonutRing({paid, partial, unpaid, selected, onSelect}) {
   const total = paid+partial+unpaid||1;
   const r=48, cx=60, cy=60, circ=2*Math.PI*r;
   const seg=(pct,off)=>({strokeDasharray:`${(pct/total)*circ} ${circ}`,strokeDashoffset:-(off/total)*circ});
+  const segments = [
+    {key:"PAID",    color:"#10b981", count:paid,    label:"Paid",    bg:"bg-emerald-400"},
+    {key:"PARTIALLY_PAID", color:"#f59e0b", count:partial, label:"Partial", bg:"bg-amber-400"},
+    {key:"UNPAID",  color:"#f87171", count:unpaid,  label:"Unpaid",  bg:"bg-red-400"},
+  ];
   return (
-    <div className="flex flex-col items-center">
-      <div className="relative">
-        <svg width="120" height="120" viewBox="0 0 120 120" style={{transform:"rotate(-90deg)"}}>
+    <div className="flex flex-col items-center w-full">
+      <div className="relative cursor-pointer" onClick={()=>onSelect(null)}>
+        <svg width="130" height="130" viewBox="0 0 120 120" style={{transform:"rotate(-90deg)"}}>
           <circle cx={cx} cy={cy} r={r} fill="none" stroke="#f3f4f6" strokeWidth="12"/>
-          <circle cx={cx} cy={cy} r={r} fill="none" stroke="#10b981" strokeWidth="12" strokeLinecap="round" style={seg(paid,0)}/>
-          <circle cx={cx} cy={cy} r={r} fill="none" stroke="#f59e0b" strokeWidth="12" strokeLinecap="round" style={seg(partial,paid)}/>
-          <circle cx={cx} cy={cy} r={r} fill="none" stroke="#f87171" strokeWidth="12" strokeLinecap="round" style={seg(unpaid,paid+partial)}/>
+          {segments.map((s,i)=>{
+            const off = i===0?0:i===1?paid:paid+partial;
+            const isSelected = selected===s.key;
+            return (
+              <circle key={s.key} cx={cx} cy={cy} r={r} fill="none" stroke={s.color}
+                strokeWidth={isSelected?16:12} strokeLinecap="round"
+                style={{...seg(s.count,off), opacity: selected && !isSelected ? 0.3 : 1, transition:"all 0.2s", cursor:"pointer"}}
+                onClick={e=>{e.stopPropagation(); onSelect(selected===s.key?null:s.key);}}
+              />
+            );
+          })}
         </svg>
         <div className="absolute inset-0 flex flex-col items-center justify-center">
           <p className="text-xl font-extrabold text-gray-800">{paid+partial+unpaid}</p>
-          <p className="text-xs text-gray-400">records</p>
+          <p className="text-xs text-gray-400">{selected?"filtered":"records"}</p>
         </div>
       </div>
-      <div className="flex gap-4 mt-3 text-xs">
-        {[["bg-emerald-400","Paid",paid],["bg-amber-400","Partial",partial],["bg-red-400","Unpaid",unpaid]].map(([c,l,v])=>(
-          <div key={l} className="flex items-center gap-1"><span className={`w-2.5 h-2.5 rounded-full ${c}`}/><span className="text-gray-500">{l} <b>{v}</b></span></div>
+      <div className="flex gap-3 mt-3 text-xs">
+        {segments.map(({key,bg,label,count})=>(
+          <button key={key} onClick={()=>onSelect(selected===key?null:key)}
+            className={`flex items-center gap-1 px-2 py-1 rounded-lg transition-all ${selected===key?"ring-2 ring-offset-1 ring-gray-400 bg-gray-50 font-bold":""}`}>
+            <span className={`w-2.5 h-2.5 rounded-full ${bg}`}/><span className="text-gray-500">{label} <b>{count}</b></span>
+          </button>
         ))}
       </div>
     </div>
@@ -537,6 +553,7 @@ function Dashboard({buildings, flats, partitions, residents, rentPayments, expen
   const paidC = monPay.filter(p=>p.paymentStatus==="PAID").length;
   const partC = monPay.filter(p=>p.paymentStatus==="PARTIALLY_PAID").length;
   const unpC  = monPay.filter(p=>p.paymentStatus==="UNPAID").length;
+  const [payFilter, setPayFilter] = useState(null);
 
   const chartData = useMemo(()=>{
     const arr=[];
@@ -644,14 +661,56 @@ function Dashboard({buildings, flats, partitions, residents, rentPayments, expen
         <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 flex flex-col items-center">
           <div className="w-full mb-3">
             <h3 className="font-extrabold text-gray-800">Payment Status</h3>
-            <p className="text-xs text-gray-400">{monLabel}</p>
+            <p className="text-xs text-gray-400">{monLabel} · {payFilter?"click segment to deselect":"click to filter"}</p>
           </div>
-          <DonutRing paid={paidC} partial={partC} unpaid={unpC}/>
+          <DonutRing paid={paidC} partial={partC} unpaid={unpC} selected={payFilter} onSelect={setPayFilter}/>
           <div className="w-full mt-4 grid grid-cols-3 gap-2 text-center">
-            {[["text-emerald-500","bg-emerald-50","Paid",paidC],["text-amber-500","bg-amber-50","Partial",partC],["text-red-400","bg-red-50","Unpaid",unpC]].map(([tc,bg,l,v])=>(
-              <div key={l} className={`rounded-xl py-2 ${bg}`}><p className={`text-xl font-extrabold ${tc}`}>{v}</p><p className="text-xs text-gray-400">{l}</p></div>
+            {[["PAID","text-emerald-500","bg-emerald-50","Paid",paidC],["PARTIALLY_PAID","text-amber-500","bg-amber-50","Partial",partC],["UNPAID","text-red-400","bg-red-50","Unpaid",unpC]].map(([key,tc,bg,l,v])=>(
+              <button key={l} onClick={()=>setPayFilter(payFilter===key?null:key)}
+                className={`rounded-xl py-2 ${bg} transition-all ${payFilter===key?"ring-2 ring-offset-1 ring-gray-400":""}`}>
+                <p className={`text-xl font-extrabold ${tc}`}>{v}</p><p className="text-xs text-gray-400">{l}</p>
+              </button>
             ))}
           </div>
+          {/* Resident detail list */}
+          {payFilter && (()=>{
+            const filtered = monPay.filter(p=>p.paymentStatus===payFilter);
+            const labelMap = {PAID:"Fully Paid", PARTIALLY_PAID:"Partially Paid", UNPAID:"Unpaid"};
+            const colorMap = {PAID:"text-emerald-600", PARTIALLY_PAID:"text-amber-600", UNPAID:"text-red-500"};
+            return (
+              <div className="w-full mt-4 border-t border-gray-100 pt-4">
+                <p className={`text-xs font-bold uppercase tracking-wide mb-3 ${colorMap[payFilter]}`}>{labelMap[payFilter]} — {filtered.length} resident{filtered.length!==1?"s":""}</p>
+                {filtered.length===0
+                  ? <p className="text-xs text-gray-400 text-center py-3">No records</p>
+                  : <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
+                      {filtered.map(p=>{
+                        const res=residents.find(r=>r.id===p.residentId);
+                        const part=partitions.find(x=>x.id===res?.partitionId);
+                        const fl=flats.find(x=>x.id===part?.flatId);
+                        const bld=buildings.find(x=>x.id===fl?.buildingId);
+                        const bal=p.totalRent-p.paidAmount;
+                        return (
+                          <div key={p.id} className="flex items-center gap-3 bg-gray-50 rounded-xl px-3 py-2.5">
+                            <div className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0"
+                              style={{background:"linear-gradient(135deg,#6366f1,#a855f7)"}}>
+                              {res?.fullName?.charAt(0)}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-semibold text-gray-800 truncate">{res?.fullName}</p>
+                              <p className="text-xs text-gray-400 truncate">{bld?.name} › {fl?.flatNumber} › {part?.partitionName}</p>
+                            </div>
+                            <div className="text-right flex-shrink-0">
+                              <p className="text-xs font-bold text-emerald-600">AED {fmtN(p.paidAmount)}</p>
+                              {bal>0 && <p className="text-xs text-red-400">−{fmtN(bal)} due</p>}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                }
+              </div>
+            );
+          })()}
         </div>
       </div>
 
