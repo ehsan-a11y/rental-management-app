@@ -7,6 +7,21 @@ const fmtN = n => Number(n||0).toLocaleString();
 const nowMonth = () => new Date().toISOString().slice(0,7);
 const calcStatus = (paid, total) => +paid >= +total ? "PAID" : +paid > 0 ? "PARTIALLY_PAID" : "UNPAID";
 
+/* ── Auth types ── */
+type AuthUser   = { id:string; username:string; passwordHash:string; isAdmin:boolean; createdAt:string; };
+type AuthInvite = { token:string; createdAt:string; used:boolean; };
+type AuthStore  = { users:AuthUser[]; invites:AuthInvite[]; };
+
+/* ── Auth helpers ── */
+const hashPw = (u:string, p:string) => btoa(unescape(encodeURIComponent(u.toLowerCase()+"|"+p)));
+const AUTH_KEY = "rmAuth", SESSION_KEY = "rmAuthSession";
+const loadAuthStore = ():AuthStore => { try { const r=localStorage.getItem(AUTH_KEY); if(r) return JSON.parse(r); } catch{} return {users:[],invites:[]}; };
+const saveAuthStore = (s:AuthStore) => localStorage.setItem(AUTH_KEY, JSON.stringify(s));
+const loadSession = () => { try { const r=localStorage.getItem(SESSION_KEY); if(r) return JSON.parse(r); } catch{} return null; };
+const saveSession = (s:any) => s ? localStorage.setItem(SESSION_KEY, JSON.stringify(s)) : localStorage.removeItem(SESSION_KEY);
+const getInviteToken = () => new URLSearchParams(window.location.search).get("invite");
+const clearInviteFromUrl = () => { const u=new URL(window.location.href); u.searchParams.delete("invite"); window.history.replaceState({},"",u.toString()); };
+
 const SEED = {
   buildings: [
     { id:"b1", name:"Al Noor Tower",  address:"Al Nahda, Dubai",  notes:"Main building" },
@@ -1281,6 +1296,214 @@ function ExpensesPage({expenses, flats, buildings, onAdd, onDelete}) {
   );
 }
 
+/* ── Auth screens ── */
+
+function AuthCard({children}:{children:any}) {
+  return (
+    <div className="min-h-screen flex items-center justify-center p-4" style={{background:"linear-gradient(135deg,#eef2ff,#f5f3ff,#faf5ff)"}}>
+      <div className="bg-white rounded-2xl shadow-lg w-full max-w-md p-8">
+        <div className="flex items-center gap-3 mb-6">
+          <span className="text-3xl">🏠</span>
+          <div><p className="font-bold text-gray-800 text-lg">RentManage</p><p className="text-xs text-gray-400">Property Manager</p></div>
+        </div>
+        {children}
+      </div>
+    </div>
+  );
+}
+
+function SetupScreen({onCreated}:{onCreated:()=>void}) {
+  const [username,setUsername]=useState("");
+  const [password,setPassword]=useState("");
+  const [confirm,setConfirm]=useState("");
+  const [err,setErr]=useState<any>({});
+  const submit=()=>{
+    const e:any={};
+    if(!username.trim())              e.username="Required";
+    else if(username.trim().length<3) e.username="Min 3 characters";
+    if(!password)                     e.password="Required";
+    else if(password.length<6)        e.password="Min 6 characters";
+    if(password!==confirm)            e.confirm="Passwords do not match";
+    if(Object.keys(e).length){setErr(e);return;}
+    const store=loadAuthStore();
+    if(store.users.length>0){setErr({username:"Admin already exists"});return;}
+    const user:AuthUser={id:uid(),username:username.trim().toLowerCase(),passwordHash:hashPw(username.trim().toLowerCase(),password),isAdmin:true,createdAt:new Date().toISOString()};
+    store.users.push(user);
+    saveAuthStore(store);
+    saveSession({userId:user.id});
+    onCreated();
+  };
+  return (
+    <AuthCard>
+      <h2 className="text-lg font-semibold text-gray-700 mb-1">Create Admin Account</h2>
+      <p className="text-sm text-gray-400 mb-5">First-time setup — set your admin credentials to get started.</p>
+      <Field label="Username *" err={err.username}><input className={inp} value={username} onChange={e=>setUsername(e.target.value)} placeholder="e.g. admin" autoFocus/></Field>
+      <Field label="Password *" err={err.password}><input className={inp} type="password" value={password} onChange={e=>setPassword(e.target.value)} placeholder="Min 6 characters"/></Field>
+      <Field label="Confirm Password *" err={err.confirm}><input className={inp} type="password" value={confirm} onChange={e=>setConfirm(e.target.value)} onKeyDown={e=>e.key==="Enter"&&submit()} placeholder="Repeat password"/></Field>
+      <button onClick={submit} className={`${btnCls("bg-indigo-600 hover:bg-indigo-700 text-white")} w-full mt-2`}>Create Admin Account</button>
+    </AuthCard>
+  );
+}
+
+function LoginScreen({onLoggedIn}:{onLoggedIn:()=>void}) {
+  const [username,setUsername]=useState("");
+  const [password,setPassword]=useState("");
+  const [error,setError]=useState("");
+  const submit=()=>{
+    setError("");
+    const store=loadAuthStore();
+    const user=store.users.find(u=>u.username===username.trim().toLowerCase()&&u.passwordHash===hashPw(username.trim().toLowerCase(),password));
+    if(!user){setError("Incorrect username or password.");return;}
+    saveSession({userId:user.id});
+    onLoggedIn();
+  };
+  return (
+    <AuthCard>
+      <h2 className="text-lg font-semibold text-gray-700 mb-5">Sign in to continue</h2>
+      <Field label="Username"><input className={inp} value={username} onChange={e=>setUsername(e.target.value)} placeholder="your username" autoFocus/></Field>
+      <Field label="Password"><input className={inp} type="password" value={password} onChange={e=>setPassword(e.target.value)} onKeyDown={e=>e.key==="Enter"&&submit()} placeholder="your password"/></Field>
+      {error && <div className="mb-4 px-4 py-2 bg-red-50 border border-red-200 rounded-xl text-sm text-red-600">{error}</div>}
+      <button onClick={submit} className={`${btnCls("bg-indigo-600 hover:bg-indigo-700 text-white")} w-full`}>Sign In</button>
+    </AuthCard>
+  );
+}
+
+function RegisterScreen({token,onRegistered}:{token:string;onRegistered:()=>void}) {
+  const [username,setUsername]=useState("");
+  const [password,setPassword]=useState("");
+  const [confirm,setConfirm]=useState("");
+  const [err,setErr]=useState<any>({});
+  const submit=()=>{
+    const e:any={};
+    if(!username.trim())              e.username="Required";
+    else if(username.trim().length<3) e.username="Min 3 characters";
+    if(!password)                     e.password="Required";
+    else if(password.length<6)        e.password="Min 6 characters";
+    if(password!==confirm)            e.confirm="Passwords do not match";
+    if(Object.keys(e).length){setErr(e);return;}
+    const store=loadAuthStore();
+    const invite=store.invites.find(i=>i.token===token&&!i.used);
+    if(!invite){setErr({username:"Invite link is invalid or already used."});return;}
+    if(store.users.some(u=>u.username===username.trim().toLowerCase())){setErr({username:"Username already taken."});return;}
+    const user:AuthUser={id:uid(),username:username.trim().toLowerCase(),passwordHash:hashPw(username.trim().toLowerCase(),password),isAdmin:false,createdAt:new Date().toISOString()};
+    invite.used=true;
+    store.users.push(user);
+    saveAuthStore(store);
+    saveSession({userId:user.id});
+    clearInviteFromUrl();
+    onRegistered();
+  };
+  return (
+    <AuthCard>
+      <h2 className="text-lg font-semibold text-gray-700 mb-1">You've been invited!</h2>
+      <p className="text-sm text-gray-400 mb-5">Create your account to access RentManage.</p>
+      <Field label="Choose a Username *" err={err.username}><input className={inp} value={username} onChange={e=>setUsername(e.target.value)} placeholder="e.g. john" autoFocus/></Field>
+      <Field label="Password *" err={err.password}><input className={inp} type="password" value={password} onChange={e=>setPassword(e.target.value)} placeholder="Min 6 characters"/></Field>
+      <Field label="Confirm Password *" err={err.confirm}><input className={inp} type="password" value={confirm} onChange={e=>setConfirm(e.target.value)} onKeyDown={e=>e.key==="Enter"&&submit()} placeholder="Repeat password"/></Field>
+      <button onClick={submit} className={`${btnCls("bg-indigo-600 hover:bg-indigo-700 text-white")} w-full mt-2`}>Create Account &amp; Sign In</button>
+    </AuthCard>
+  );
+}
+
+function AdminPage({currentUser,onLogout}:{currentUser:AuthUser;onLogout:()=>void}) {
+  const [store,setStore]=useState<AuthStore>(loadAuthStore);
+  const [inviteLink,setInviteLink]=useState("");
+  const [copied,setCopied]=useState(false);
+  const [confirmDel,setConfirmDel]=useState<string|null>(null);
+
+  const generateInvite=()=>{
+    const token=uid()+uid()+uid();
+    const invite:AuthInvite={token,createdAt:new Date().toISOString(),used:false};
+    const updated={...store,invites:[...store.invites,invite]};
+    saveAuthStore(updated);setStore(updated);
+    setInviteLink(`${window.location.origin}${window.location.pathname}?invite=${token}`);
+    setCopied(false);
+  };
+  const copyLink=()=>{
+    navigator.clipboard.writeText(inviteLink).then(()=>{setCopied(true);setTimeout(()=>setCopied(false),2500);});
+  };
+  const removeUser=(userId:string)=>{
+    if(userId===currentUser.id)return;
+    const updated={...store,users:store.users.filter(u=>u.id!==userId)};
+    saveAuthStore(updated);setStore(updated);setConfirmDel(null);
+  };
+
+  return (
+    <div className="space-y-6">
+      <h2 className="text-2xl font-bold text-gray-800">Users &amp; Settings</h2>
+
+      {/* Invite card */}
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+        <h3 className="font-semibold text-gray-700 mb-1">Invite New User</h3>
+        <p className="text-sm text-gray-400 mb-4">Generate a one-time invite link. Share it with anyone you want to add — they'll create their own username and password.</p>
+        <button onClick={generateInvite} className={btnCls("bg-indigo-600 hover:bg-indigo-700 text-white")}>Generate Invite Link</button>
+        {inviteLink && (
+          <div className="mt-4 flex items-center gap-2 p-3 bg-indigo-50 border border-indigo-200 rounded-xl">
+            <code className="flex-1 text-xs text-indigo-700 break-all select-all">{inviteLink}</code>
+            <button onClick={copyLink} className={`flex-shrink-0 px-3 py-1.5 text-xs rounded-lg font-medium transition-colors ${copied?"bg-emerald-500 text-white":"bg-indigo-600 hover:bg-indigo-700 text-white"}`}>
+              {copied?"✓ Copied!":"Copy"}
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* Users table */}
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+        <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
+          <h3 className="font-semibold text-gray-700">All Users <span className="text-gray-400 font-normal text-sm">({store.users.length})</span></h3>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead className="bg-gray-50 border-b border-gray-100">
+              <tr><Th c="User"/><Th c="Role"/><Th c="Joined"/><Th c="Actions"/></tr>
+            </thead>
+            <tbody>
+              {store.users.map(u=>(
+                <tr key={u.id} className="border-b border-gray-50 hover:bg-gray-50/50">
+                  <Td c={
+                    <span className="flex items-center gap-2">
+                      <div className="w-7 h-7 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0"
+                        style={{background:"linear-gradient(135deg,#6366f1,#a855f7)"}}>
+                        {u.username.charAt(0).toUpperCase()}
+                      </div>
+                      <span className="font-medium">{u.username}</span>
+                      {u.id===currentUser.id && <span className="text-xs text-gray-400">(you)</span>}
+                    </span>
+                  }/>
+                  <Td c={<span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${u.isAdmin?"bg-indigo-100 text-indigo-700":"bg-gray-100 text-gray-600"}`}>{u.isAdmin?"Admin":"User"}</span>}/>
+                  <Td c={u.createdAt.slice(0,10)}/>
+                  <Td c={u.id!==currentUser.id
+                    ? <button onClick={()=>setConfirmDel(u.id)} className="text-red-400 hover:text-red-600 text-sm font-medium">Remove</button>
+                    : <span className="text-gray-300 text-sm">—</span>
+                  }/>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* Account info */}
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+        <h3 className="font-semibold text-gray-700 mb-4">Your Account</h3>
+        <div className="flex items-center gap-4">
+          <div className="w-12 h-12 rounded-full flex items-center justify-center text-white text-lg font-bold flex-shrink-0"
+            style={{background:"linear-gradient(135deg,#6366f1,#a855f7)"}}>
+            {currentUser.username.charAt(0).toUpperCase()}
+          </div>
+          <div>
+            <p className="font-semibold text-gray-800">{currentUser.username}</p>
+            <p className="text-sm text-gray-400">{currentUser.isAdmin?"Administrator":"User"} · joined {currentUser.createdAt.slice(0,10)}</p>
+          </div>
+          <button onClick={onLogout} className={`ml-auto ${btnCls("bg-red-50 hover:bg-red-100 text-red-600")}`}>Sign Out</button>
+        </div>
+      </div>
+
+      {confirmDel && <Confirm msg="Remove this user? They will no longer be able to log in." onYes={()=>removeUser(confirmDel!)} onNo={()=>setConfirmDel(null)}/>}
+    </div>
+  );
+}
+
 /* ── MAIN APP ── */
 export default function App() {
   const [page, setPage] = useState("dashboard");
@@ -1295,6 +1518,9 @@ export default function App() {
   const [modal,         setModal]         = useState(null);
   const [confirm,       setConfirm]       = useState(null);
   const [sideOpen,      setSideOpen]      = useState(false);
+  const [authStore,   setAuthStore]   = useState<AuthStore>(loadAuthStore);
+  const [currentUser, setCurrentUser] = useState<AuthUser|null>(()=>{const st=loadAuthStore();const se=loadSession();return se?(st.users.find(u=>u.id===se.userId)??null):null;});
+  const [inviteToken] = useState<string|null>(getInviteToken);
 
   useEffect(()=>{
     (async()=>{
@@ -1367,6 +1593,9 @@ export default function App() {
   const saveExpense = d => { const nxt=[...expenses,{...d,id:uid()}];setExpenses(nxt);persist({expenses:nxt});close(); };
   const deleteExpense = id => { const nxt=expenses.filter(e=>e.id!==id);setExpenses(nxt);persist({expenses:nxt}); };
 
+  const handleLogout=()=>{saveSession(null);setCurrentUser(null);};
+  const handleAuthSuccess=()=>{const st=loadAuthStore();const se=loadSession();setAuthStore(st);setCurrentUser(se?(st.users.find(u=>u.id===se.userId)??null):null);};
+
   const nav = p => { setPage(p); setSelFlat(null); setSideOpen(false); };
   const NAV = [
     {id:"dashboard",icon:"📊",label:"Dashboard"},
@@ -1375,11 +1604,17 @@ export default function App() {
     {id:"residents",icon:"👥",label:"Residents"},
     {id:"rent",     icon:"💳",label:"Rent Payments"},
     {id:"expenses", icon:"💸",label:"Expenses"},
+    {id:"admin",    icon:"⚙️",label:"Users & Settings"},
   ];
   const isActive = p => page===p||(page==="flatDetail"&&p==="flats");
   const activeRes = residents.filter(r=>r.status==="Active");
 
   if(loading) return <div className="min-h-screen bg-gray-50 flex items-center justify-center"><div className="text-gray-400 text-lg">Loading…</div></div>;
+
+  // ── Auth gate ──
+  if(inviteToken){const store=loadAuthStore();const valid=store.invites.find(i=>i.token===inviteToken&&!i.used);if(valid)return <RegisterScreen token={inviteToken} onRegistered={handleAuthSuccess}/>;}
+  if(authStore.users.length===0) return <SetupScreen onCreated={handleAuthSuccess}/>;
+  if(!currentUser) return <LoginScreen onLoggedIn={handleAuthSuccess}/>;
 
   return (
     <div className="min-h-screen bg-gray-50 flex" style={{fontFamily:"'Inter',system-ui,sans-serif"}}>
@@ -1399,8 +1634,21 @@ export default function App() {
             </button>
           ))}
         </nav>
-        <div className="px-4 py-4 border-t border-gray-100">
+        <div className="px-4 py-4 border-t border-gray-100 space-y-3">
+          <div className="flex items-center gap-2">
+            <div className="w-7 h-7 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0"
+              style={{background:"linear-gradient(135deg,#6366f1,#a855f7)"}}>
+              {currentUser.username.charAt(0).toUpperCase()}
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-xs font-semibold text-gray-700 truncate">{currentUser.username}</p>
+              <p className="text-xs text-gray-400">{currentUser.isAdmin?"Admin":"User"}</p>
+            </div>
+          </div>
           <p className="text-xs text-gray-400 text-center">{buildings.length} Buildings · {activeRes.length} Active</p>
+          <button onClick={handleLogout} className="w-full text-xs text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg py-1.5 transition-colors">
+            Sign Out
+          </button>
         </div>
       </aside>
 
@@ -1432,6 +1680,7 @@ export default function App() {
           {page==="residents" && <ResidentsPage residents={residents} partitions={partitions} flats={flats} buildings={buildings} onAdd={()=>setModal({type:"resident"})} onEdit={r=>setModal({type:"resident",data:r})} onDelete={id=>setConfirm({msg:"Delete this resident?",action:()=>deleteResident(id)})}/>}
           {page==="rent"      && <RentPage rentPayments={rentPayments} residents={residents} partitions={partitions} flats={flats} buildings={buildings} onAdd={()=>setModal({type:"payment"})} onEdit={p=>setModal({type:"payment",data:p})} onDelete={id=>setConfirm({msg:"Delete this payment?",action:()=>deletePayment(id)})}/>}
           {page==="expenses"  && <ExpensesPage expenses={expenses} flats={flats} buildings={buildings} onAdd={()=>setModal({type:"expense"})} onDelete={id=>setConfirm({msg:"Delete this expense?",action:()=>deleteExpense(id)})}/>}
+          {page==="admin"     && <AdminPage currentUser={currentUser} onLogout={handleLogout}/>}
         </div>
       </main>
 
