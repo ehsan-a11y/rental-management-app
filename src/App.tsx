@@ -634,29 +634,32 @@ function Dashboard({buildings, flats, partitions, residents, rentPayments, expen
       {/* Charts row */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-          <h3 className="font-extrabold text-gray-800 mb-1">Revenue Overview</h3>
-          <p className="text-xs text-gray-400 mb-4">Last 6 months</p>
-          <ResponsiveContainer width="100%" height={210}>
-            <BarChart data={chartData} barGap={3} barCategoryGap="28%">
-              <defs>
-                {[["cg","#6366f1","#818cf8"],["eg","#f87171","#fca5a5"],["ng","#10b981","#34d399"]].map(([id,c1,c2])=>(
-                  <linearGradient key={id} id={id} x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor={c1}/><stop offset="100%" stopColor={c2}/></linearGradient>
-                ))}
-              </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="#f5f5f5" vertical={false}/>
-              <XAxis dataKey="month" tick={{fontSize:11,fill:"#9ca3af"}} axisLine={false} tickLine={false}/>
-              <YAxis tick={{fontSize:11,fill:"#9ca3af"}} axisLine={false} tickLine={false} tickFormatter={v=>`${v/1000}k`}/>
-              <Tooltip formatter={v=>`AED ${fmtN(v)}`} contentStyle={{borderRadius:14,border:"none",boxShadow:"0 8px 30px rgba(0,0,0,0.12)",fontSize:12}}/>
-              <Bar dataKey="Collected" fill="url(#cg)" radius={[6,6,0,0]}/>
-              <Bar dataKey="Expenses"  fill="url(#eg)" radius={[6,6,0,0]}/>
-              <Bar dataKey="Net"       fill="url(#ng)" radius={[6,6,0,0]}/>
-            </BarChart>
-          </ResponsiveContainer>
-          <div className="flex gap-4 mt-2 justify-center text-xs text-gray-400">
-            {[["#6366f1","Collected"],["#f87171","Expenses"],["#10b981","Net"]].map(([c,l])=>(
-              <span key={l} className="flex items-center gap-1"><span className="w-3 h-3 rounded-sm inline-block" style={{background:c}}/>{l}</span>
-            ))}
-          </div>
+          <h3 className="font-extrabold text-gray-800 mb-1">Expense Breakdown</h3>
+          <p className="text-xs text-gray-400 mb-4">{monLabel}</p>
+          {expCat.length===0
+            ? <div className="text-center py-10 text-gray-300"><p className="text-3xl mb-2">📭</p><p className="text-sm">No expenses</p></div>
+            : <div className="space-y-4">
+                {expCat.map(({name,value},i)=>{
+                  const pct=monExp>0?Math.round((value/monExp)*100):0;
+                  return (
+                    <div key={name}>
+                      <div className="flex justify-between text-sm mb-1">
+                        <span className="flex items-center gap-2 font-medium text-gray-700">
+                          <span className="w-2.5 h-2.5 rounded-full inline-block" style={{background:CAT_CLR[i%CAT_CLR.length]}}/>{name}
+                        </span>
+                        <span className="text-xs font-bold text-gray-600">AED {fmtN(value)} <span className="text-gray-400">({pct}%)</span></span>
+                      </div>
+                      <div className="w-full bg-gray-100 rounded-full h-2">
+                        <div className="h-2 rounded-full transition-all" style={{width:`${pct}%`,background:CAT_CLR[i%CAT_CLR.length]}}/>
+                      </div>
+                    </div>
+                  );
+                })}
+                <div className="pt-3 border-t border-gray-100 flex justify-between text-sm">
+                  <span className="text-gray-400">Total</span><span className="font-extrabold text-red-500">AED {fmtN(monExp)}</span>
+                </div>
+              </div>
+          }
         </div>
         <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 flex flex-col items-center">
           <div className="w-full mb-3">
@@ -714,34 +717,31 @@ function Dashboard({buildings, flats, partitions, residents, rentPayments, expen
         </div>
       </div>
 
-      {/* Expense breakdown */}
+      {/* Revenue Overview */}
       <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-          <h3 className="font-extrabold text-gray-800 mb-1">Expense Breakdown</h3>
-          <p className="text-xs text-gray-400 mb-4">{monLabel}</p>
-          {expCat.length===0
-            ? <div className="text-center py-10 text-gray-300"><p className="text-3xl mb-2">📭</p><p className="text-sm">No expenses</p></div>
-            : <div className="space-y-4">
-                {expCat.map(({name,value},i)=>{
-                  const pct=monExp>0?Math.round((value/monExp)*100):0;
-                  return (
-                    <div key={name}>
-                      <div className="flex justify-between text-sm mb-1">
-                        <span className="flex items-center gap-2 font-medium text-gray-700">
-                          <span className="w-2.5 h-2.5 rounded-full inline-block" style={{background:CAT_CLR[i%CAT_CLR.length]}}/>{name}
-                        </span>
-                        <span className="text-xs font-bold text-gray-600">AED {fmtN(value)} <span className="text-gray-400">({pct}%)</span></span>
-                      </div>
-                      <div className="w-full bg-gray-100 rounded-full h-2">
-                        <div className="h-2 rounded-full transition-all" style={{width:`${pct}%`,background:CAT_CLR[i%CAT_CLR.length]}}/>
-                      </div>
-                    </div>
-                  );
-                })}
-                <div className="pt-3 border-t border-gray-100 flex justify-between text-sm">
-                  <span className="text-gray-400">Total</span><span className="font-extrabold text-red-500">AED {fmtN(monExp)}</span>
-                </div>
-              </div>
-          }
+        <h3 className="font-extrabold text-gray-800 mb-1">Revenue Overview</h3>
+        <p className="text-xs text-gray-400 mb-4">Last 6 months</p>
+        <ResponsiveContainer width="100%" height={210}>
+          <BarChart data={chartData} barGap={3} barCategoryGap="28%">
+            <defs>
+              {[["cg","#6366f1","#818cf8"],["eg","#f87171","#fca5a5"],["ng","#10b981","#34d399"]].map(([id,c1,c2])=>(
+                <linearGradient key={id} id={id} x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor={c1}/><stop offset="100%" stopColor={c2}/></linearGradient>
+              ))}
+            </defs>
+            <CartesianGrid strokeDasharray="3 3" stroke="#f5f5f5" vertical={false}/>
+            <XAxis dataKey="month" tick={{fontSize:11,fill:"#9ca3af"}} axisLine={false} tickLine={false}/>
+            <YAxis tick={{fontSize:11,fill:"#9ca3af"}} axisLine={false} tickLine={false} tickFormatter={v=>`${v/1000}k`}/>
+            <Tooltip formatter={v=>`AED ${fmtN(v)}`} contentStyle={{borderRadius:14,border:"none",boxShadow:"0 8px 30px rgba(0,0,0,0.12)",fontSize:12}}/>
+            <Bar dataKey="Collected" fill="url(#cg)" radius={[6,6,0,0]}/>
+            <Bar dataKey="Expenses"  fill="url(#eg)" radius={[6,6,0,0]}/>
+            <Bar dataKey="Net"       fill="url(#ng)" radius={[6,6,0,0]}/>
+          </BarChart>
+        </ResponsiveContainer>
+        <div className="flex gap-4 mt-2 justify-center text-xs text-gray-400">
+          {[["#6366f1","Collected"],["#f87171","Expenses"],["#10b981","Net"]].map(([c,l])=>(
+            <span key={l} className="flex items-center gap-1"><span className="w-3 h-3 rounded-sm inline-block" style={{background:c}}/>{l}</span>
+          ))}
+        </div>
       </div>
 
       {/* Flat performance */}
