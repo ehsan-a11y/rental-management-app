@@ -95,10 +95,10 @@ function Confirm({msg, onYes, onNo}) {
 }
 
 /* ── Dashboard components ── */
-function KpiCard({icon, label, value, sub, grad, badge, progress, progressMax}) {
+function KpiCard({icon, label, value, sub, grad, badge, progress, progressMax, onClick}) {
   const pct = progressMax > 0 ? Math.min((progress/progressMax)*100,100) : 0;
   return (
-    <div className="relative rounded-2xl overflow-hidden shadow-lg p-5" style={{background:grad}}>
+    <div className={`relative rounded-2xl overflow-hidden shadow-lg p-5 ${onClick?"cursor-pointer hover:opacity-90 transition-opacity":""}`} style={{background:grad}} onClick={onClick}>
       <div className="absolute -top-5 -right-5 w-20 h-20 rounded-full" style={{background:"rgba(255,255,255,0.08)"}}/>
       <div className="flex items-start justify-between mb-3">
         <div className="w-10 h-10 rounded-xl flex items-center justify-center text-xl" style={{background:"rgba(255,255,255,0.2)"}}>{icon}</div>
@@ -376,7 +376,7 @@ function ExpenseForm({init, flats, buildings, onSave, onClose}) {
 }
 
 /* ── DASHBOARD ── */
-function Dashboard({buildings, flats, partitions, residents, rentPayments, expenses}) {
+function Dashboard({buildings, flats, partitions, residents, rentPayments, expenses, onNav}) {
   const mon = nowMonth();
   const monLabel = new Date(mon+"-01").toLocaleString("default",{month:"long",year:"numeric"});
   const today = new Date().toLocaleDateString("en-AE",{weekday:"long",year:"numeric",month:"long",day:"numeric"});
@@ -442,7 +442,7 @@ function Dashboard({buildings, flats, partitions, residents, rentPayments, expen
 
       {/* KPI row 1 */}
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
-        <KpiCard icon="🏙️" label="Buildings"    value={buildings.length}  sub={`${flats.length} flats`}       grad="linear-gradient(135deg,#4f46e5,#7c3aed)"/>
+        <KpiCard icon="🏙️" label="Buildings"    value={buildings.length}  sub={`${flats.length} flats`}       grad="linear-gradient(135deg,#4f46e5,#7c3aed)" onClick={()=>onNav("buildings")}/>
         <KpiCard icon="👥" label="Residents"     value={activeRes.length}  sub={`${residents.filter(r=>r.status==="Vacated").length} vacated`} grad="linear-gradient(135deg,#0284c7,#0891b2)"/>
         <KpiCard icon="🚪" label="Empty Slots"   value={emptySlots}        sub={`of ${totalSlots} total`}     grad="linear-gradient(135deg,#0f766e,#059669)" badge={emptySlots>0?"Available":"Full"}/>
         <KpiCard icon="📊" label="Est. Rent"     value={`AED ${fmtN(estRent)}`} sub="monthly target"        grad="linear-gradient(135deg,#b45309,#d97706)"/>
@@ -1124,7 +1124,7 @@ export default function App() {
           <span className="font-semibold text-gray-800">RentManage</span>
         </div>
         <div className="p-4 lg:p-8 max-w-7xl mx-auto">
-          {page==="dashboard" && <Dashboard buildings={buildings} flats={flats} partitions={partitions} residents={residents} rentPayments={rentPayments} expenses={expenses}/>}
+          {page==="dashboard" && <Dashboard buildings={buildings} flats={flats} partitions={partitions} residents={residents} rentPayments={rentPayments} expenses={expenses} onNav={nav}/>}
           {page==="buildings" && <BuildingsPage buildings={buildings} flats={flats} partitions={partitions} residents={residents} expenses={expenses} rentPayments={rentPayments} onAdd={()=>setModal({type:"building"})} onEdit={b=>setModal({type:"building",data:b})} onDelete={id=>setConfirm({msg:"Delete this building and all its data?",action:()=>deleteBuilding(id)})}/>}
           {page==="flats" && <FlatsPage buildings={buildings} flats={flats} partitions={partitions} residents={residents} onAdd={()=>setModal({type:"flat"})} onEdit={fl=>setModal({type:"flat",data:fl})} onDelete={id=>setConfirm({msg:"Delete this flat?",action:()=>deleteFlat(id)})} onView={fl=>{setSelFlat(fl);setPage("flatDetail");}}/>}
           {page==="flatDetail" && selFlat && (
