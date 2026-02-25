@@ -428,9 +428,7 @@ function ResidentSearch({residents, partitions, flats, buildings, rentPayments})
   const selBalance = sel ? pendingBalance(sel) : 0;
 
   return (
-    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
-      <h3 className="font-extrabold text-gray-800 mb-1">Resident Lookup</h3>
-      <p className="text-xs text-gray-400 mb-3">Search by name or phone to view full details</p>
+    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
       <div className="relative">
         <div className="flex items-center gap-2">
           <div className="relative flex-1">
