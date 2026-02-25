@@ -1400,9 +1400,6 @@ export default function App() {
             </button>
           ))}
         </nav>
-        <div className="px-4 py-4 border-t border-gray-100">
-          <p className="text-xs text-gray-400 text-center">{buildings.length} Buildings · {activeRes.length} Active</p>
-        </div>
       </aside>
 
       <main className="flex-1 min-w-0">
