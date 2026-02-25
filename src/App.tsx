@@ -8,7 +8,7 @@ const nowMonth = () => new Date().toISOString().slice(0,7);
 const calcStatus = (paid, total) => +paid >= +total ? "PAID" : +paid > 0 ? "PARTIALLY_PAID" : "UNPAID";
 
 /* ── Auth types ── */
-type AuthUser   = { id:string; username:string; passwordHash:string; isAdmin:boolean; createdAt:string; };
+type AuthUser   = { id:string; username:string; email:string; passwordHash:string; isAdmin:boolean; createdAt:string; };
 type AuthInvite = { token:string; createdAt:string; used:boolean; };
 type AuthStore  = { users:AuthUser[]; invites:AuthInvite[]; };
 
@@ -1314,6 +1314,7 @@ function AuthCard({children}:{children:any}) {
 
 function SetupScreen({onCreated}:{onCreated:()=>void}) {
   const [username,setUsername]=useState("");
+  const [email,setEmail]=useState("");
   const [password,setPassword]=useState("");
   const [confirm,setConfirm]=useState("");
   const [err,setErr]=useState<any>({});
@@ -1321,13 +1322,15 @@ function SetupScreen({onCreated}:{onCreated:()=>void}) {
     const e:any={};
     if(!username.trim())              e.username="Required";
     else if(username.trim().length<3) e.username="Min 3 characters";
+    if(!email.trim())                 e.email="Required";
+    else if(!/\S+@\S+\.\S+/.test(email.trim())) e.email="Invalid email";
     if(!password)                     e.password="Required";
     else if(password.length<6)        e.password="Min 6 characters";
     if(password!==confirm)            e.confirm="Passwords do not match";
     if(Object.keys(e).length){setErr(e);return;}
     const store=loadAuthStore();
     if(store.users.length>0){setErr({username:"Admin already exists"});return;}
-    const user:AuthUser={id:uid(),username:username.trim().toLowerCase(),passwordHash:hashPw(username.trim().toLowerCase(),password),isAdmin:true,createdAt:new Date().toISOString()};
+    const user:AuthUser={id:uid(),username:username.trim().toLowerCase(),email:email.trim().toLowerCase(),passwordHash:hashPw(username.trim().toLowerCase(),password),isAdmin:true,createdAt:new Date().toISOString()};
     store.users.push(user);
     saveAuthStore(store);
     saveSession({userId:user.id});
@@ -1338,6 +1341,7 @@ function SetupScreen({onCreated}:{onCreated:()=>void}) {
       <h2 className="text-lg font-semibold text-gray-700 mb-1">Create Admin Account</h2>
       <p className="text-sm text-gray-400 mb-5">First-time setup — set your admin credentials to get started.</p>
       <Field label="Username *" err={err.username}><input className={inp} value={username} onChange={e=>setUsername(e.target.value)} placeholder="e.g. admin" autoFocus/></Field>
+      <Field label="Email *" err={err.email}><input className={inp} type="email" value={email} onChange={e=>setEmail(e.target.value)} placeholder="e.g. you@example.com"/></Field>
       <Field label="Password *" err={err.password}><input className={inp} type="password" value={password} onChange={e=>setPassword(e.target.value)} placeholder="Min 6 characters"/></Field>
       <Field label="Confirm Password *" err={err.confirm}><input className={inp} type="password" value={confirm} onChange={e=>setConfirm(e.target.value)} onKeyDown={e=>e.key==="Enter"&&submit()} placeholder="Repeat password"/></Field>
       <button onClick={submit} className={`${btnCls("bg-indigo-600 hover:bg-indigo-700 text-white")} w-full mt-2`}>Create Admin Account</button>
@@ -1370,6 +1374,7 @@ function LoginScreen({onLoggedIn}:{onLoggedIn:()=>void}) {
 
 function RegisterScreen({token,onRegistered}:{token:string;onRegistered:()=>void}) {
   const [username,setUsername]=useState("");
+  const [email,setEmail]=useState("");
   const [password,setPassword]=useState("");
   const [confirm,setConfirm]=useState("");
   const [err,setErr]=useState<any>({});
@@ -1377,6 +1382,8 @@ function RegisterScreen({token,onRegistered}:{token:string;onRegistered:()=>void
     const e:any={};
     if(!username.trim())              e.username="Required";
     else if(username.trim().length<3) e.username="Min 3 characters";
+    if(!email.trim())                 e.email="Required";
+    else if(!/\S+@\S+\.\S+/.test(email.trim())) e.email="Invalid email";
     if(!password)                     e.password="Required";
     else if(password.length<6)        e.password="Min 6 characters";
     if(password!==confirm)            e.confirm="Passwords do not match";
@@ -1385,7 +1392,7 @@ function RegisterScreen({token,onRegistered}:{token:string;onRegistered:()=>void
     const invite=store.invites.find(i=>i.token===token&&!i.used);
     if(!invite){setErr({username:"Invite link is invalid or already used."});return;}
     if(store.users.some(u=>u.username===username.trim().toLowerCase())){setErr({username:"Username already taken."});return;}
-    const user:AuthUser={id:uid(),username:username.trim().toLowerCase(),passwordHash:hashPw(username.trim().toLowerCase(),password),isAdmin:false,createdAt:new Date().toISOString()};
+    const user:AuthUser={id:uid(),username:username.trim().toLowerCase(),email:email.trim().toLowerCase(),passwordHash:hashPw(username.trim().toLowerCase(),password),isAdmin:false,createdAt:new Date().toISOString()};
     invite.used=true;
     store.users.push(user);
     saveAuthStore(store);
@@ -1398,6 +1405,7 @@ function RegisterScreen({token,onRegistered}:{token:string;onRegistered:()=>void
       <h2 className="text-lg font-semibold text-gray-700 mb-1">You've been invited!</h2>
       <p className="text-sm text-gray-400 mb-5">Create your account to access RentManage.</p>
       <Field label="Choose a Username *" err={err.username}><input className={inp} value={username} onChange={e=>setUsername(e.target.value)} placeholder="e.g. john" autoFocus/></Field>
+      <Field label="Email *" err={err.email}><input className={inp} type="email" value={email} onChange={e=>setEmail(e.target.value)} placeholder="e.g. you@example.com"/></Field>
       <Field label="Password *" err={err.password}><input className={inp} type="password" value={password} onChange={e=>setPassword(e.target.value)} placeholder="Min 6 characters"/></Field>
       <Field label="Confirm Password *" err={err.confirm}><input className={inp} type="password" value={confirm} onChange={e=>setConfirm(e.target.value)} onKeyDown={e=>e.key==="Enter"&&submit()} placeholder="Repeat password"/></Field>
       <button onClick={submit} className={`${btnCls("bg-indigo-600 hover:bg-indigo-700 text-white")} w-full mt-2`}>Create Account &amp; Sign In</button>
@@ -1445,6 +1453,11 @@ function AdminPage({currentUser,onLogout}:{currentUser:AuthUser;onLogout:()=>voi
     setPwOk(true);setPwErr("");
     setTimeout(()=>cancelReset(),1500);
   };
+  const toggleRole=(userId:string)=>{
+    if(userId===currentUser.id)return;
+    const updated={...store,users:store.users.map(u=>u.id===userId?{...u,isAdmin:!u.isAdmin}:u)};
+    saveAuthStore(updated);setStore(updated);
+  };
 
   return (
     <div className="space-y-6">
@@ -1473,7 +1486,7 @@ function AdminPage({currentUser,onLogout}:{currentUser:AuthUser;onLogout:()=>voi
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead className="bg-gray-50 border-b border-gray-100">
-              <tr><Th c="User"/><Th c="Role"/><Th c="Joined"/><Th c="Actions"/></tr>
+              <tr><Th c="User"/><Th c="Email"/><Th c="Role"/><Th c="Joined"/><Th c="Actions"/></tr>
             </thead>
             <tbody>
               {store.users.map(u=>(
@@ -1489,7 +1502,16 @@ function AdminPage({currentUser,onLogout}:{currentUser:AuthUser;onLogout:()=>voi
                       {u.id===currentUser.id && <span className="text-xs text-gray-400">(you)</span>}
                     </span>
                   }/>
-                  <Td c={<span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${u.isAdmin?"bg-indigo-100 text-indigo-700":"bg-gray-100 text-gray-600"}`}>{u.isAdmin?"Admin":"User"}</span>}/>
+                  <Td c={<span className="text-gray-500">{u.email||"—"}</span>}/>
+                  <Td c={
+                    u.id!==currentUser.id
+                      ? <button onClick={()=>toggleRole(u.id)}
+                          className={`px-2 py-0.5 rounded-full text-xs font-semibold cursor-pointer transition-colors ${u.isAdmin?"bg-indigo-100 text-indigo-700 hover:bg-indigo-200":"bg-gray-100 text-gray-600 hover:bg-gray-200"}`}
+                          title="Click to change role">
+                          {u.isAdmin?"Admin ▾":"User ▾"}
+                        </button>
+                      : <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${u.isAdmin?"bg-indigo-100 text-indigo-700":"bg-gray-100 text-gray-600"}`}>{u.isAdmin?"Admin":"User"}</span>
+                  }/>
                   <Td c={u.createdAt.slice(0,10)}/>
                   <Td c={u.id!==currentUser.id
                     ? <span className="flex items-center gap-3">
@@ -1539,7 +1561,8 @@ function AdminPage({currentUser,onLogout}:{currentUser:AuthUser;onLogout:()=>voi
           </div>
           <div>
             <p className="font-semibold text-gray-800">{currentUser.username}</p>
-            <p className="text-sm text-gray-400">{currentUser.isAdmin?"Administrator":"User"} · joined {currentUser.createdAt.slice(0,10)}</p>
+            <p className="text-sm text-gray-400">{currentUser.email||""}</p>
+            <p className="text-xs text-gray-400">{currentUser.isAdmin?"Administrator":"User"} · joined {currentUser.createdAt.slice(0,10)}</p>
           </div>
           <button onClick={onLogout} className={`ml-auto ${btnCls("bg-red-50 hover:bg-red-100 text-red-600")}`}>Sign Out</button>
         </div>
@@ -1688,7 +1711,7 @@ export default function App() {
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-xs font-semibold text-gray-700 truncate">{currentUser.username}</p>
-              <p className="text-xs text-gray-400">{currentUser.isAdmin?"Admin":"User"}</p>
+              <p className="text-xs text-gray-400 truncate">{currentUser.email||currentUser.isAdmin?"Admin":"User"}</p>
             </div>
           </div>
           <p className="text-xs text-gray-400 text-center">{buildings.length} Buildings · {activeRes.length} Active</p>
